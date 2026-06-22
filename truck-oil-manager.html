@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>オイル管理システム</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #f4f5f7; font-family: 'Hiragino Sans', 'Meiryo', sans-serif; }
+  input, select, button { font-family: inherit; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+const ENGINE_DB = {
+  isuzu: {
+    label: "いすゞ", color: "#003087",
+    engines: {
+      "4JJ1": { name: "4JJ1（エルフ小型）", oilL: 7.5, oilGrade: "5W-30", filterL: 0.5 },
+      "4HK1": { name: "4HK1（エルフ中型）", oilL: 11.0, oilGrade: "10W-30", filterL: 0.7 },
+      "6HK1": { name: "6HK1（フォワード）", oilL: 15.0, oilGrade: "10W-30", filterL: 1.0 },
+      "6UZ1": { name: "6UZ1（ギガ）", oilL: 22.0, oilGrade: "10W-30", filterL: 1.5 },
+      "6WG1": { name: "6WG1（ギガ大型）", oilL: 26.0, oilGrade: "10W-30", filterL: 1.5 },
+      "6SD1": { name: "6SD1（旧ギガ）", oilL: 20.0, oilGrade: "15W-40", filterL: 1.5 },
+      "4BD1": { name: "4BD1（旧エルフ）", oilL: 8.5, oilGrade: "15W-40", filterL: 0.5 },
+      "6BG1": { name: "6BG1（旧フォワード）", oilL: 14.0, oilGrade: "15W-40", filterL: 1.0 },
+    }
+  },
+  hino: {
+    label: "日野", color: "#CC0000",
+    engines: {
+      "N04C": { name: "N04C（デュトロ小型）", oilL: 7.0, oilGrade: "5W-30", filterL: 0.5 },
+      "J05E": { name: "J05E（レンジャー中型）", oilL: 12.0, oilGrade: "10W-30", filterL: 0.8 },
+      "J07E": { name: "J07E（レンジャー大型）", oilL: 16.0, oilGrade: "10W-30", filterL: 1.0 },
+      "A09C": { name: "A09C（プロフィア）", oilL: 24.0, oilGrade: "10W-30", filterL: 1.5 },
+      "E13C": { name: "E13C（プロフィア大型）", oilL: 28.0, oilGrade: "10W-30", filterL: 1.5 },
+      "P11C": { name: "P11C（旧プロフィア）", oilL: 25.0, oilGrade: "15W-40", filterL: 1.5 },
+      "J08C": { name: "J08C（旧レンジャー）", oilL: 15.0, oilGrade: "15W-40", filterL: 1.0 },
+      "W04D": { name: "W04D（旧デュトロ）", oilL: 8.0, oilGrade: "15W-40", filterL: 0.5 },
+    }
+  },
+  ud: {
+    label: "UDトラックス", color: "#E8830C",
+    engines: {
+      "4H":   { name: "4H（カゼット小型）", oilL: 9.5, oilGrade: "5W-30", filterL: 0.6 },
+      "MD92": { name: "MD92（コンドル中型）", oilL: 14.0, oilGrade: "10W-30", filterL: 1.0 },
+      "GH8":  { name: "GH8（クオン）", oilL: 22.0, oilGrade: "10W-30", filterL: 1.5 },
+      "GH13": { name: "GH13（クオン大型）", oilL: 27.0, oilGrade: "10W-30", filterL: 1.5 },
+      "PF6":  { name: "PF6（旧クオン）", oilL: 23.0, oilGrade: "15W-40", filterL: 1.5 },
+      "PE6":  { name: "PE6（旧コンドル）", oilL: 13.0, oilGrade: "15W-40", filterL: 1.0 },
+      "FE6":  { name: "FE6（旧コンドル中型）", oilL: 11.0, oilGrade: "15W-40", filterL: 0.8 },
+      "RF8":  { name: "RF8（旧コンドル大型）", oilL: 20.0, oilGrade: "15W-40", filterL: 1.5 },
+    }
+  }
+};
+
+const MAKERS = Object.keys(ENGINE_DB);
+const STORAGE_KEY = "truck_fleet_v1";
+
+function loadFleet() {
+  try { const r = localStorage.getItem(STORAGE_KEY); return r ? JSON.parse(r) : []; }
+  catch { return []; }
+}
+function saveFleet(f) { localStorage.setItem(STORAGE_KEY, JSON.stringify(f)); }
+
+function App() {
+  const [tab, setTab] = React.useState("lookup");
+  const [fleet, setFleet] = React.useState(loadFleet);
+
+  // 検索
+  const [maker, setMaker] = React.useState("");
+  const [engine, setEngine] = React.useState("");
+  const [withFilter, setWithFilter] = React.useState(true);
+
+  // 台帳追加
+  const [showAdd, setShowAdd] = React.useState(false);
+  const [addForm, setAddForm] = React.useState({ vin: "", nickname: "", maker: "", engine: "" });
+  const [addError, setAddError] = React.useState("");
+
+  // 交換記録
+  const [recordTarget, setRecordTarget] = React.useState(null);
+  const [recordDate, setRecordDate] = React.useState(new Date().toISOString().slice(0,10));
+  const [recordMileage, setRecordMileage] = React.useState("");
+  const [recordNote, setRecordNote] = React.useState("");
+  const [recWithFilter, setRecWithFilter] = React.useState(true);
+
+  const engineInfo = maker && engine ? ENGINE_DB[maker].engines[engine] : null;
+  const totalOil = engineInfo ? (engineInfo.oilL + (withFilter ? engineInfo.filterL : 0)).toFixed(1) : null;
+  const mc = maker ? ENGINE_DB[maker].color : "#333";
+
+  function addTruck() {
+    if (!addForm.vin.trim()) { setAddError("車体番号を入力してください"); return; }
+    if (!addForm.maker)      { setAddError("メーカーを選択してください"); return; }
+    if (!addForm.engine)     { setAddError("エンジン型式を選択してください"); return; }
+    if (fleet.find(t => t.vin === addForm.vin.trim())) { setAddError("同じ車体番号が既に登録されています"); return; }
+    const nf = [...fleet, { ...addForm, vin: addForm.vin.trim(), records: [] }];
+    setFleet(nf); saveFleet(nf);
+    setShowAdd(false); setAddForm({ vin:"", nickname:"", maker:"", engine:"" }); setAddError("");
+  }
+
+  function deleteTruck(vin) {
+    if (!window.confirm(vin + " を削除しますか？")) return;
+    const nf = fleet.filter(t => t.vin !== vin);
+    setFleet(nf); saveFleet(nf);
+  }
+
+  function addRecord() {
+    if (!recordDate || !recordTarget) return;
+    const info = ENGINE_DB[recordTarget.maker].engines[recordTarget.engine];
+    const oil = (info.oilL + (recWithFilter ? info.filterL : 0)).toFixed(1);
+    const nf = fleet.map(t => t.vin !== recordTarget.vin ? t : {
+      ...t, records: [...(t.records||[]), { date: recordDate, mileage: recordMileage, oil, note: recordNote }]
+    });
+    setFleet(nf); saveFleet(nf);
+    setRecordTarget(null); setRecordMileage(""); setRecordNote("");
+  }
+
+  const latestRecord = t => t.records?.length ? t.records[t.records.length-1] : null;
+
+  // --- CSS-in-JS ---
+  const S = {
+    root:   { minHeight:"100vh", background:"#f4f5f7" },
+    header: { background:"#1a1a2e", padding:"0 16px", position:"sticky", top:0, zIndex:100, boxShadow:"0 2px 8px rgba(0,0,0,.3)" },
+    hInner: { maxWidth:900, margin:"0 auto", display:"flex", alignItems:"center", justifyContent:"space-between", height:58 },
+    logoWrap:{ display:"flex", alignItems:"center", gap:10 },
+    logoT:  { color:"#fff", fontWeight:800, fontSize:16, letterSpacing:1 },
+    logoS:  { color:"#aaa", fontSize:9, letterSpacing:2 },
+    nav:    { display:"flex", gap:6 },
+    navBtn: { background:"transparent", color:"#ccc", border:"none", padding:"6px 14px", borderRadius:6, cursor:"pointer", fontSize:13, fontWeight:500 },
+    navAct: { background:"#fff", color:"#1a1a2e", fontWeight:700 },
+    main:   { maxWidth:900, margin:"24px auto", padding:"0 14px" },
+    card:   { background:"#fff", borderRadius:14, padding:24, boxShadow:"0 2px 12px rgba(0,0,0,.08)", marginBottom:16 },
+    title:  { fontSize:17, fontWeight:700, marginBottom:18, color:"#1a1a2e" },
+    makerRow:{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:14 },
+    mkBtn:  (m, sel) => ({ padding:"9px 18px", borderRadius:8, border:"2px solid "+ENGINE_DB[m].color,
+              background: sel ? ENGINE_DB[m].color : "#f0f0f0", color: sel ? "#fff" : "#333",
+              fontWeight:700, fontSize:13, cursor:"pointer" }),
+    field:  { marginBottom:14 },
+    label:  { display:"block", fontSize:12, fontWeight:600, color:"#555", marginBottom:5 },
+    select: { width:"100%", padding:"9px 12px", border:"1.5px solid #ddd", borderRadius:8, fontSize:14, background:"#fafafa" },
+    input:  { width:"100%", padding:"9px 12px", border:"1.5px solid #ddd", borderRadius:8, fontSize:14, background:"#fafafa" },
+    chkRow: { display:"flex", alignItems:"center", gap:8, marginBottom:14, cursor:"pointer", fontSize:14 },
+    result: (c) => ({ border:"2px solid "+c, borderRadius:12, padding:18, marginTop:8 }),
+    badge:  (c) => ({ display:"inline-block", background:c, color:"#fff", borderRadius:6, padding:"3px 12px", fontSize:12, fontWeight:700, marginBottom:12 }),
+    rRow:   { display:"flex", justifyContent:"space-between", alignItems:"center", padding:"7px 0", borderBottom:"1px solid #f0f0f0" },
+    rLabel: { color:"#666", fontSize:13 },
+    rVal:   { fontWeight:700, fontSize:18, color:"#1a1a2e" },
+    totBox: (c) => ({ background:c, borderRadius:10, padding:"12px 18px", display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:14 }),
+    totLbl: { color:"rgba(255,255,255,.85)", fontSize:13, fontWeight:600 },
+    totNum: { color:"#fff", fontSize:30, fontWeight:800 },
+    fHeader:{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:18 },
+    addBtn: { background:"#1a1a2e", color:"#fff", border:"none", borderRadius:8, padding:"9px 18px", fontSize:13, fontWeight:700, cursor:"pointer" },
+    empty:  { textAlign:"center", padding:"50px 20px", background:"#fff", borderRadius:14, boxShadow:"0 2px 12px rgba(0,0,0,.08)" },
+    grid:   { display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:14 },
+    tCard:  { background:"#fff", borderRadius:12, overflow:"hidden", boxShadow:"0 2px 10px rgba(0,0,0,.08)" },
+    tHead:  (c) => ({ background:c, padding:"10px 14px", display:"flex", justifyContent:"space-between", alignItems:"flex-start" }),
+    tVin:   { color:"#fff", fontWeight:800, fontSize:14 },
+    tNick:  { color:"rgba(255,255,255,.8)", fontSize:11, marginTop:2 },
+    tTag:   { background:"rgba(255,255,255,.2)", color:"#fff", borderRadius:4, padding:"2px 7px", fontSize:10, fontWeight:700 },
+    tBody:  { padding:12 },
+    tInfo:  { display:"flex", justifyContent:"space-between", padding:"4px 0", fontSize:12 },
+    tIL:    { color:"#888" },
+    tIV:    { fontWeight:600, color:"#333" },
+    lastRec:{ fontSize:11, color:"#888", background:"#f8f8f8", borderRadius:6, padding:"4px 8px", marginTop:6 },
+    actions:{ display:"flex", gap:6, marginTop:10 },
+    actBtn: (c) => ({ flex:1, background:c, color:"#fff", border:"none", borderRadius:7, padding:"7px", fontSize:12, fontWeight:700, cursor:"pointer" }),
+    delBtn: { background:"transparent", color:"#ccc", border:"1px solid #ddd", borderRadius:7, padding:"7px 10px", fontSize:12, cursor:"pointer" },
+    histW:  { marginTop:10, borderTop:"1px solid #f0f0f0", paddingTop:8 },
+    histS:  { fontSize:12, color:"#888", cursor:"pointer", marginBottom:6 },
+    tbl:    { width:"100%", borderCollapse:"collapse", fontSize:11 },
+    th:     { textAlign:"left", padding:"3px 5px", color:"#999", fontWeight:600, borderBottom:"1px solid #eee" },
+    td:     { padding:"4px 5px", color:"#555" },
+    overlay:{ position:"fixed", inset:0, background:"rgba(0,0,0,.5)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:200, padding:14 },
+    modal:  { background:"#fff", borderRadius:14, padding:24, width:"100%", maxWidth:460, maxHeight:"90vh", overflowY:"auto", boxShadow:"0 8px 40px rgba(0,0,0,.2)" },
+    mTitle: { fontSize:17, fontWeight:700, marginBottom:18, color:"#1a1a2e" },
+    mActs:  { display:"flex", gap:8, marginTop:18, justifyContent:"flex-end" },
+    cancBtn:{ background:"#f0f0f0", color:"#555", border:"none", borderRadius:8, padding:"9px 18px", fontSize:13, cursor:"pointer", fontWeight:600 },
+    saveBtn:{ background:"#1a1a2e", color:"#fff", border:"none", borderRadius:8, padding:"9px 22px", fontSize:13, cursor:"pointer", fontWeight:700 },
+    error:  { color:"#cc0000", fontSize:12, background:"#fff0f0", borderRadius:6, padding:"7px 10px", marginBottom:8 },
+    infoBox:(c) => ({ background:c, color:"#fff", borderRadius:8, padding:"7px 12px", marginBottom:14, fontSize:13, fontWeight:600 }),
+  };
+
+  return (
+    <div style={S.root}>
+      <header style={S.header}>
+        <div style={S.hInner}>
+          <div style={S.logoWrap}>
+            <span style={{fontSize:26}}>🛻</span>
+            <div>
+              <div style={S.logoT}>オイル管理システム</div>
+              <div style={S.logoS}>TRUCK OIL MANAGER</div>
+            </div>
+          </div>
+          <nav style={S.nav}>
+            {[{k:"lookup",l:"エンジン検索"},{k:"fleet",l:`車両台帳 (${fleet.length})`}].map(({k,l})=>(
+              <button key={k} style={{...S.navBtn,...(tab===k?S.navAct:{})}} onClick={()=>setTab(k)}>{l}</button>
+            ))}
+          </nav>
+        </div>
+      </header>
+
+      <main style={S.main}>
+
+        {/* 検索タブ */}
+        {tab==="lookup" && (
+          <div style={S.card}>
+            <div style={S.title}>オイル量クイック検索</div>
+            <div style={S.makerRow}>
+              {MAKERS.map(m=>(
+                <button key={m} style={S.mkBtn(m, maker===m)} onClick={()=>{setMaker(m);setEngine("");}}>
+                  {ENGINE_DB[m].label}
+                </button>
+              ))}
+            </div>
+            {maker && (
+              <div style={S.field}>
+                <label style={S.label}>エンジン型式</label>
+                <select style={S.select} value={engine} onChange={e=>setEngine(e.target.value)}>
+                  <option value="">-- 選択してください --</option>
+                  {Object.entries(ENGINE_DB[maker].engines).map(([k,v])=>(
+                    <option key={k} value={k}>{k}　{v.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {engineInfo && (
+              <label style={S.chkRow}>
+                <input type="checkbox" checked={withFilter} onChange={e=>setWithFilter(e.target.checked)}
+                  style={{width:17,height:17,accentColor:mc}}/>
+                オイルフィルター同時交換 (+{engineInfo.filterL}L)
+              </label>
+            )}
+            {engineInfo && (
+              <div style={S.result(mc)}>
+                <div style={S.badge(mc)}>{ENGINE_DB[maker].label} / {engine}</div>
+                <div style={S.rRow}><span style={S.rLabel}>エンジンオイル</span><span style={S.rVal}>{engineInfo.oilL} L</span></div>
+                {withFilter && <div style={S.rRow}><span style={S.rLabel}>フィルター込み</span><span style={S.rVal}>{totalOil} L</span></div>}
+                <div style={S.rRow}><span style={S.rLabel}>推奨グレード</span><span style={{...S.rVal,fontSize:17}}>{engineInfo.oilGrade}</span></div>
+                <div style={S.totBox(mc)}>
+                  <span style={S.totLbl}>交換オイル量</span>
+                  <span style={S.totNum}>{totalOil} L</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 台帳タブ */}
+        {tab==="fleet" && (
+          <div>
+            <div style={S.fHeader}>
+              <div style={S.title}>車両台帳</div>
+              <button style={S.addBtn} onClick={()=>setShowAdd(true)}>＋ 車両を追加</button>
+            </div>
+            {fleet.length===0 ? (
+              <div style={S.empty}>
+                <div style={{fontSize:44,marginBottom:10}}>🚚</div>
+                <div style={{fontSize:15,color:"#888"}}>車両が登録されていません</div>
+                <div style={{fontSize:12,color:"#aaa",marginTop:4}}>「＋ 車両を追加」から登録してください</div>
+              </div>
+            ) : (
+              <div style={S.grid}>
+                {fleet.map(truck=>{
+                  const info = ENGINE_DB[truck.maker].engines[truck.engine];
+                  const last = latestRecord(truck);
+                  const c = ENGINE_DB[truck.maker].color;
+                  return (
+                    <div key={truck.vin} style={S.tCard}>
+                      <div style={S.tHead(c)}>
+                        <div>
+                          <div style={S.tVin}>{truck.vin}</div>
+                          {truck.nickname && <div style={S.tNick}>{truck.nickname}</div>}
+                        </div>
+                        <div style={S.tTag}>{ENGINE_DB[truck.maker].label}</div>
+                      </div>
+                      <div style={S.tBody}>
+                        <div style={S.tInfo}><span style={S.tIL}>エンジン</span><span style={S.tIV}>{truck.engine}</span></div>
+                        <div style={S.tInfo}><span style={S.tIL}>オイル量</span><span style={{...S.tIV,color:c,fontWeight:700}}>{(info.oilL+info.filterL).toFixed(1)} L</span></div>
+                        <div style={S.tInfo}><span style={S.tIL}>グレード</span><span style={S.tIV}>{info.oilGrade}</span></div>
+                        {last && <div style={S.lastRec}>📅 前回: {last.date}{last.mileage && `　${parseInt(last.mileage).toLocaleString()} km`}</div>}
+                        <div style={S.actions}>
+                          <button style={S.actBtn(c)} onClick={()=>{setRecordTarget(truck);setRecWithFilter(true);}}>交換記録</button>
+                          <button style={S.delBtn} onClick={()=>deleteTruck(truck.vin)}>削除</button>
+                        </div>
+                        {truck.records?.length>0 && (
+                          <details style={S.histW}>
+                            <summary style={S.histS}>交換履歴 ({truck.records.length}回)</summary>
+                            <table style={S.tbl}>
+                              <thead><tr><th style={S.th}>日付</th><th style={S.th}>走行距離</th><th style={S.th}>油量</th><th style={S.th}>備考</th></tr></thead>
+                              <tbody>
+                                {[...truck.records].reverse().map((r,i)=>(
+                                  <tr key={i} style={i%2===0?{background:"#fafafa"}:{}}>
+                                    <td style={S.td}>{r.date}</td>
+                                    <td style={S.td}>{r.mileage?`${parseInt(r.mileage).toLocaleString()} km`:"-"}</td>
+                                    <td style={S.td}>{r.oil} L</td>
+                                    <td style={S.td}>{r.note||"-"}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </details>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </main>
+
+      {/* 車両追加モーダル */}
+      {showAdd && (
+        <div style={S.overlay} onClick={()=>setShowAdd(false)}>
+          <div style={S.modal} onClick={e=>e.stopPropagation()}>
+            <div style={S.mTitle}>車両を追加</div>
+            <div style={S.field}>
+              <label style={S.label}>車体番号 *</label>
+              <input style={S.input} placeholder="例: 2KG-FRR90S2" value={addForm.vin} onChange={e=>setAddForm({...addForm,vin:e.target.value})}/>
+            </div>
+            <div style={S.field}>
+              <label style={S.label}>車両名・愛称（任意）</label>
+              <input style={S.input} placeholder="例: 1号車" value={addForm.nickname} onChange={e=>setAddForm({...addForm,nickname:e.target.value})}/>
+            </div>
+            <div style={S.field}>
+              <label style={S.label}>メーカー *</label>
+              <div style={S.makerRow}>
+                {MAKERS.map(m=>(
+                  <button key={m} style={S.mkBtn(m, addForm.maker===m)} onClick={()=>setAddForm({...addForm,maker:m,engine:""})}>
+                    {ENGINE_DB[m].label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {addForm.maker && (
+              <div style={S.field}>
+                <label style={S.label}>エンジン型式 *</label>
+                <select style={S.select} value={addForm.engine} onChange={e=>setAddForm({...addForm,engine:e.target.value})}>
+                  <option value="">-- 選択してください --</option>
+                  {Object.entries(ENGINE_DB[addForm.maker].engines).map(([k,v])=>(
+                    <option key={k} value={k}>{k}　{v.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {addError && <div style={S.error}>{addError}</div>}
+            <div style={S.mActs}>
+              <button style={S.cancBtn} onClick={()=>{setShowAdd(false);setAddError("");}}>キャンセル</button>
+              <button style={S.saveBtn} onClick={addTruck}>登録する</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 交換記録モーダル */}
+      {recordTarget && (
+        <div style={S.overlay} onClick={()=>setRecordTarget(null)}>
+          <div style={S.modal} onClick={e=>e.stopPropagation()}>
+            <div style={S.mTitle}>オイル交換記録</div>
+            <div style={S.infoBox(ENGINE_DB[recordTarget.maker].color)}>
+              {recordTarget.vin}{recordTarget.nickname && `（${recordTarget.nickname}）`}
+            </div>
+            <div style={S.field}>
+              <label style={S.label}>交換日 *</label>
+              <input type="date" style={S.input} value={recordDate} onChange={e=>setRecordDate(e.target.value)}/>
+            </div>
+            <div style={S.field}>
+              <label style={S.label}>走行距離（km）</label>
+              <input type="number" style={S.input} placeholder="例: 125000" value={recordMileage} onChange={e=>setRecordMileage(e.target.value)}/>
+            </div>
+            <label style={S.chkRow}>
+              <input type="checkbox" checked={recWithFilter} onChange={e=>setRecWithFilter(e.target.checked)} style={{width:17,height:17}}/>
+              オイルフィルター同時交換
+            </label>
+            <div style={S.field}>
+              <label style={S.label}>備考</label>
+              <input style={S.input} placeholder="例: 次回 130,000km" value={recordNote} onChange={e=>setRecordNote(e.target.value)}/>
+            </div>
+            {(() => {
+              const info = ENGINE_DB[recordTarget.maker].engines[recordTarget.engine];
+              const oil = (info.oilL + (recWithFilter ? info.filterL : 0)).toFixed(1);
+              return (
+                <div style={S.totBox(ENGINE_DB[recordTarget.maker].color)}>
+                  <span style={S.totLbl}>交換オイル量</span>
+                  <span style={S.totNum}>{oil} L</span>
+                </div>
+              );
+            })()}
+            <div style={S.mActs}>
+              <button style={S.cancBtn} onClick={()=>setRecordTarget(null)}>キャンセル</button>
+              <button style={S.saveBtn} onClick={addRecord}>記録する</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

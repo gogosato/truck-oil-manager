@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>オイル管理システム v1.9</title>
+<title>オイル管理システム v2.0</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
@@ -34,6 +34,23 @@
 //   [ふそう] 6S10 oilL構造確認・noteにパンのみ/フィルター同時の内訳を明記
 //   [ふそう] 6R20 構造確認・noteにパンのみ/フィルター同時の内訳を明記
 //   [UD旧型] MD92/PF6/PE6 elementNo候補を追記
+// v2.0 全エンジン再調査（公式優先）：
+//   【公式一次ソース確認済み】
+//   [UD] GH8/GH11: UD公式取扱説明書（給油および給脂14-4）で確定
+//        GH8: オイルパン27L/全容量28.5L → filterL=1.5L
+//        GH11: オイルパン27L/全容量33L → filterL=6.0L（整備要領書とも一致）
+//   [UD] GH13: UD整備要領書でオイルサンプ29.5L/システム35.5L → filterL=6.0L確定
+//   【調査更新】
+//   [いすゞ] 6UZ1 oilLMax削除（みんカラ「32〜34L」は過充填含む値）
+//            noteを型式別取説値に更新（知恵袋整備士回答・型式別数値追記）
+//            elementTypeを「旧型×2個/現行×1個」に訂正
+//   [いすゞ] 6WG1 noteを実測値ベースに更新（公式未取得を明記）
+//   【現状変更なし・調査で確認】
+//   [日野] E13C: steerlink 28L + みんカラ31L実測（エレメント同時）→ filterL=3.0L維持
+//   [日野] A09C: steerlink 27L、filterL=2.0L未確認（noteに明記済み）
+//   [ふそう] 6R20: 知恵袋で取説値38L確認済み → 合計38L維持
+//   【公式PDFアクセス不可（403ブロック）】
+//   UDトラックス、日野、いすゞ、三菱ふそう各社公式PDFへのダイレクトアクセス不可
 // v1.9 GH8 公式取扱説明書（給油および給脂14-4）確定値に修正：
 //   [UD] GH8 oilL確定（27.0L）・filterL確定（1.5L）・needsConfirm解除
 //        公式OM記載値：オイルパン容量27L／全容量28.5L
@@ -93,11 +110,11 @@ const ENGINE_DB = {
       },
       "6UZ1": {
         name: "6UZ1（ギガ標準）",
-        oilL: 28.0, oilLMax: 34.0, oilGrade: "10W-30 DH-2", filterL: 4.0,
-        elementType: "スピンオン式×2個",
+        oilL: 28.0, oilGrade: "10W-30 DH-2", filterL: 4.0,
+        elementType: "スピンオン式×2個（旧型）/ ×1個（現行）",
         elementNo: "1-13240-079-0 / 1-13240-211-0",
         altElement: "FESCO IE-16",
-        note: "エレメント2個付き。filterLはエレメント2個分の合計。実測：エレメント同時交換で30〜34L（整備事例より）。oilLのみ交換では26〜28L前後。型式（QKG-CXZ/EXD等）や年式により差あり。必ずゲージ確認。"
+        note: "型式・年式により油量が大きく異なる。QKG-CXZ77AT等ダンプ・カーゴ系：オイルのみ28L/エレメント込み32.5L（知恵袋整備士情報）。QKG-EXD77AEトラクタ系：オイルのみ26.1L/エレメント込み31.0L。旧型はエレメント2個、現行は1個に変更。公式取説値は型式ごとに異なるため必ずゲージ確認。"
       },
       "6WG1": {
         name: "6WG1（ギガ大型/トラクタ）",
@@ -105,7 +122,7 @@ const ENGINE_DB = {
         elementType: "スピンオン式×2個",
         elementNo: "1-13240-079-0 / 1-13240-211-0",
         altElement: "FESCO IE-16",
-        note: "エレメント2個付き。filterLはエレメント2個分の合計。6UZ1より旧世代で現在は単車では6UZ1に置換済み（トラクタ・消防車等に残存）。"
+        note: "現在はトラクタ・消防車等に残存（単車は6UZ1に置換済み）。みんカラ実測でエレメント込み約29L（6WF1系の一部記録）。oilL=26.5はステアリンク記載値。公式一次ソース未取得。型式・年式により差があるため必ずゲージ確認。"
       },
       "6NX1": {
         name: "6NX1（ギガ/フォワード中間）",

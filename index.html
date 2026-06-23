@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>オイル管理システム v2.0</title>
+<title>オイル管理システム v2.1</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
@@ -34,6 +34,13 @@
 //   [ふそう] 6S10 oilL構造確認・noteにパンのみ/フィルター同時の内訳を明記
 //   [ふそう] 6R20 構造確認・noteにパンのみ/フィルター同時の内訳を明記
 //   [UD旧型] MD92/PF6/PE6 elementNo候補を追記
+// v2.1 初代クオン（2004〜2010年）GE13エンジン追加：
+//   [UD追加] GE13エンジン新規追加（初代クオン 2004.11〜2010年モデル）
+//            排気量13.1L直6、尿素SCR+クールドEGR、フルフロー2個+バイパス1個フィルター
+//            oilL=34.0L（推定）、filterL=6.0L（推定）※みんカラ記述「約40L」を参考値
+//            needsConfirm=true、elementNo未取得
+//   [UD修正] MD92 name更新（「初代クオン 中型」を明記）
+//   [UD修正] UDセクションの世代コメントを整理（現行2代目/初代/旧型）
 // v2.0 全エンジン再調査（公式優先）：
 //   【公式一次ソース確認済み】
 //   [UD] GH8/GH11: UD公式取扱説明書（給油および給脂14-4）で確定
@@ -251,7 +258,7 @@ const ENGINE_DB = {
   ud: {
     label: "UDトラックス", color: "#E8830C",
     engines: {
-      // 現行型（GH系）
+      // 現行型（2代目クオン 2017年〜 GH系）
       "GH8": {
         name: "GH8（クオン8L単車）",
         oilL: 27.0, oilGrade: "VDS-4 / DH-2 5W-30（UD純正メガオイル推奨）", filterL: 1.5,
@@ -292,7 +299,17 @@ const ENGINE_DB = {
         altElement: "要確認",
         note: "排気量4.7L直4。コンドルMK系全車・LK系に搭載。中型用GH系エンジン。oilLは参考値。"
       },
-      // 旧型
+      // 初代クオン（2004〜2010年 GE系）
+      "GE13": {
+        name: "GE13（初代クオン 大型）",
+        oilL: 34.0, oilGrade: "10W-30 DH-2 / DH-1（年式による）", filterL: 6.0,
+        needsConfirm: true,
+        elementType: "スピンオン式（フルフロー2個＋バイパス1個）",
+        elementNo: "要確認",
+        altElement: "要確認",
+        note: "⚠️oilL・filterL・elementNo要確認。初代クオン（2004.11〜2010年モデル）搭載。排気量13.1L直6。GH11の前身エンジン。みんカラ整備記録に「GE13クオンは40L位入った」という言及あり（実測）。公式取説記載値未取得のため現車確認必須。フルフロー2個＋バイパス1個フィルター構成（GH11系と類似）。平成17年排出ガス規制適合（尿素SCR+クールドEGR）。"
+      },
+      // 旧型（コンドル・ビッグサム等）
       "4H": {
         name: "4H（コンドル小型）",
         oilL: 9.5, oilGrade: "5W-30 DH-2", filterL: 0.6,
@@ -302,7 +319,7 @@ const ENGINE_DB = {
         note: "UDコンドル小型。三菱ふそうキャンターとはOEM関係なし（車名「カゼット」はUD旧ブランドの別型式）。"
       },
       "MD92": {
-        name: "MD92（旧コンドル中型/旧クオン）",
+        name: "MD92（旧コンドル中型/初代クオン 中型）",
         oilL: 14.0, oilGrade: "10W-30 DH-1", filterL: 1.0,
         elementType: "スピンオン式",
         elementNo: "15274-NY01J（旧クオン搭載時・FESCO UE-18対応）",

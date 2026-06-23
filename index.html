@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>オイル管理システム v1.4</title>
+<title>オイル管理システム v1.5</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
@@ -27,6 +27,13 @@
 //   [日野] J07E oilL 16→13L（複数整備事例・専門サイトで13L確認）
 //   [ふそう] 6S10 oilL 20→35L（整備事例で35L確認）
 //   [ふそう] 6R20 oilL 28→35L（整備事例「説明書通り38L」確認・note更新）
+// v1.5 構造確認・修正：
+//   [UD] GH8 oilL/filterL構造修正（パンのみ28L・フィルター3本追加5L）・oilLMaxを34に修正
+//   [UD] GH11 oilL 35→27L 修正（GH11はパンのみ27L・フィルター6L→33L・v1.4の修正が誤り）
+//   [UD] GH13 filterL 3→6L修正（D13C型・ボルボ系フィルター大容量）・elementNo候補追記
+//   [ふそう] 6S10 oilL構造確認・noteにパンのみ/フィルター同時の内訳を明記
+//   [ふそう] 6R20 構造確認・noteにパンのみ/フィルター同時の内訳を明記
+//   [UD旧型] MD92/PF6/PE6 elementNo候補を追記
 // ============================================================
 const ENGINE_DB = {
   isuzu: {
@@ -203,12 +210,13 @@ const ENGINE_DB = {
       // 現行型（GH系）
       "GH8": {
         name: "GH8（クオン8L単車）",
-        oilL: 33.0, oilLMax: 36.0, oilGrade: "VDS-4 / DH-2 5W-30（UD純正メガオイル推奨）", filterL: 2.0,
+        oilL: 28.0, oilLMax: 30.0, oilGrade: "VDS-4 / DH-2 5W-30（UD純正メガオイル推奨）", filterL: 5.0,
+        needsConfirm: true,
         elementType: "スピンオン式×3本",
         elementNo: "S4430-81380",
         elementNoAlt: "15200-9Z00A / 15200-9Z00B（候補品番・要確認）",
         altElement: "52234-76572（要確認）",
-        note: "2019年〜現行クオン単車系。排気量7.7L直6。VDS-4規格（DH-2相当）必須。フィルター同時交換込みで約35〜38L。フィルター3本同時交換が基本のためfilterLは3本分の合計。車両仕様・架装により差あり。必ずゲージ（HOT範囲）またはレベルプラグで確認。GH11（26〜28L）と混同注意。"
+        note: "2019年〜現行クオン単車系。排気量7.7L直6。VDS-4規格（DH-2相当）必須。オイルパンのみ約28L（oilL）、フィルター3本同時交換の追加分約5L（filterL）、合計約33〜35L。車両仕様・架装により差あり。必ずゲージ（HOT範囲）またはレベルプラグで確認。GH11（27L）と混同注意。oilLは推定値・要実測確認。"
       },
       "GH11": {
         name: "GH11（クオン11L単車/トラクタ）",
@@ -216,15 +224,16 @@ const ENGINE_DB = {
         elementType: "スピンオン式",
         elementNo: "15200-9Z00A / 15200-9Z00B（要確認）",
         altElement: "要確認",
-        note: "現行クオン主力エンジン。排気量10.8L直6。ベースはボルボD11C型。2022年モデルよりVDS-5 5W-30に変更（低粘度化）。旧モデルはVDS-4 10W-30。オイルパンのみ約27L、フィルター同時交換で約33〜35L。必ずゲージ確認。"
+        note: "現行クオン主力エンジン。排気量10.8L直6。ベースはボルボD11C型。2022年モデルよりVDS-5 5W-30に変更（低粘度化）。旧モデルはVDS-4 10W-30。オイルパンのみ約27L（oilL）、フィルター同時交換の追加分約6L（filterL）、合計約33〜35L。必ずゲージ確認。"
       },
       "GH13": {
         name: "GH13（クオントラクタ12.8L）",
-        oilL: 32.0, oilGrade: "VDS-4 / DH-2 10W-30", filterL: 3.0,
+        oilL: 32.0, oilGrade: "VDS-4 / DH-2 10W-30", filterL: 6.0,
+        needsConfirm: true,
         elementType: "スピンオン式",
-        elementNo: "要確認",
+        elementNo: "15200-9Z00A / 15200-9Z00B（要確認・GH11と共通の可能性）",
         altElement: "要確認",
-        note: "2023年〜クオントラクタ（GW系）復活。排気量12.8L直6。ベースはボルボD13C型。VDS-4必須。oilLは推定値。必ずゲージ確認。"
+        note: "2023年〜クオントラクタ（GW系）復活。排気量12.8L直6。ベースはボルボD13C型。VDS-4必須。オイルパンのみ約32L（推定・oilL）、フィルター同時交換の追加分約6L（filterL）、合計約38L（推定）。GH11と同系フィルターの可能性あり。oilL・elementNoともに要実測・要確認。"
       },
       "GH7": {
         name: "GH7（コンドルPK/PW大型相当）",
@@ -255,25 +264,25 @@ const ENGINE_DB = {
         name: "MD92（旧コンドル中型）",
         oilL: 14.0, oilGrade: "10W-30 DH-1", filterL: 1.0,
         elementType: "スピンオン式",
-        elementNo: "要確認",
+        elementNo: "15208-9F60A（要確認）",
         altElement: "FESCO MO-8",
-        note: "旧型コンドル。"
+        note: "旧型コンドル（MK系）。4.6L直4。elementNoは参考値・要現車確認。"
       },
       "PF6": {
         name: "PF6（旧クオン）",
         oilL: 23.0, oilGrade: "15W-40 DH-1", filterL: 1.5,
         elementType: "スピンオン式",
-        elementNo: "要確認",
+        elementNo: "15208-9F60A（要確認・PE6と共通の可能性）",
         altElement: "FESCO MO-8",
-        note: "旧型大型。"
+        note: "旧型大型（クオン前身・ビッグサム系）。6.9L直6。オイルパンのみ約23L、フィルター同時で約24.5L。elementNoはPE6と共通の場合あり・要現車確認。"
       },
       "PE6": {
         name: "PE6（旧コンドル大型）",
         oilL: 16.0, oilGrade: "15W-40 DH-1", filterL: 1.0,
         elementType: "スピンオン式",
-        elementNo: "要確認",
+        elementNo: "15208-9F60A（要確認）",
         altElement: "FESCO MO-8",
-        note: "旧型大型。大型エンジンのため実測15〜18L程度。必ずゲージ確認。"
+        note: "旧型大型コンドル。6.9L直6。オイルパンのみ約16L、フィルター同時で約17L（実測15〜18L程度）。elementNoはPF6と共通の場合あり・要現車確認。"
       },
       "FE6": {
         name: "FE6（旧コンドル中型）",
@@ -344,7 +353,7 @@ const ENGINE_DB = {
         elementType: "スピンオン式",
         elementNo: "ME230256",
         altElement: "要確認",
-        note: "7.7L直6。スーパーグレート現行（2017年〜）。アシンメトリックターボ搭載。整備事例で35L確認。エレメント同時で約37L。必ずゲージで確認。"
+        note: "7.7L直6。スーパーグレート現行（2017年〜）。アシンメトリックターボ搭載。オイルパンのみ約35L（oilL）、フィルター同時交換の追加分約2L（filterL）、合計約37L。整備事例で35L確認。必ずゲージで確認。"
       },
       "6R20": {
         name: "6R20（スーパーグレート大型）",
@@ -352,7 +361,7 @@ const ENGINE_DB = {
         elementType: "スピンオン式×2個",
         elementNo: "MZ690248（要確認）",
         altElement: "要確認",
-        note: "10.7L直6。スーパーグレート（2017〜2023年）。整備事例で「説明書通り38L」確認。エレメント2個付き。filterLは2個分合計。レベルゲージなし車種多数→モニター画面で確認。"
+        note: "10.7L直6。スーパーグレート（2017〜2023年）。オイルパンのみ約35L（oilL）、フィルター2個同時交換の追加分約3L（filterL・2個分合計）、合計約38L。整備事例で「説明書通り38L」確認。レベルゲージなし車種多数→モニター画面で確認。elementNo要確認。"
       },
       "6R30": {
         name: "6R30（スーパーグレート新型）",

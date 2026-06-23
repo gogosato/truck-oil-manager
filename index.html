@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>オイル管理システム v1.6</title>
+<title>オイル管理システム v1.7</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
@@ -34,6 +34,13 @@
 //   [ふそう] 6S10 oilL構造確認・noteにパンのみ/フィルター同時の内訳を明記
 //   [ふそう] 6R20 構造確認・noteにパンのみ/フィルター同時の内訳を明記
 //   [UD旧型] MD92/PF6/PE6 elementNo候補を追記
+// v1.7 公式資料調査に基づく修正：
+//   [UD] GH13 oilL修正（32.0→29.5L）：UD整備要領書（2010大型トラック別冊）公式値
+//        オイルサンプ29.5L・システム油量35.5L・filterL=6.0Lを確認
+//   [UD] GH11 note更新：整備要領書出典を明記（オイルサンプ27.0L・システム33.0L）
+//   [日野] E13C filterL修正（1.5→3.0L）：みんカラ整備事例エレメント同時31L確認
+//          oilLMax削除・note更新（公式一次ソース未取得）
+//   [日野] A09C note更新：filterL確認推奨を明記
 // v1.6 データ収集・精査：
 //   [UD] GH8 elementNo修正（S4430-81380はGH11用→GH8専用品番52234-76572/52239-58455に修正）
 //   [UD] GH11 elementNo確定（S4430-81380/Φ91mm×H143mm）・整備事例オイル量を追記
@@ -165,15 +172,15 @@ const ENGINE_DB = {
         elementType: "スピンオン式",
         elementNo: "15607-3890",
         altElement: "FESCO HNO-16（要確認）",
-        note: "現行プロフィア。E13Cとの混在年式に注意。"
+        note: "steerlink記載oilL=27L。filterL=2.0Lは現車確認推奨（公式一次ソース未取得）。E13Cとエレメント品番共通。現行プロフィア主力エンジン。"
       },
       "E13C": {
         name: "E13C（プロフィア大型）",
-        oilL: 28.0, oilLMax: 34.0, oilGrade: "10W-30 DH-2", filterL: 1.5,
+        oilL: 28.0, oilGrade: "10W-30 DH-2", filterL: 3.0,
         elementType: "大型スピンオン式",
         elementNo: "15607-3890",
         altElement: "FESCO HNO-16（要確認）",
-        note: "実測で30〜34L入るケースあり。filterL（エレメント追加量）は約1.5L。必ずゲージで確認。"
+        note: "steerlink記載値oilL=28L。みんカラ整備事例（エレメント同時）で31L入りの記録あり→filterL=3.0L。公式一次ソース未取得につき現車でゲージ確認必須。"
       },
       "J08E": {
         name: "J08E（セレガ/旧プロフィアバス）",
@@ -230,16 +237,15 @@ const ENGINE_DB = {
         elementType: "スピンオン式",
         elementNo: "S4430-81380（Φ91mm×H143mm）",
         altElement: "15200-9Z00A / 15200-9Z00B（要確認）",
-        note: "現行クオン主力エンジン。排気量10.8L直6。ベースはボルボD11C型。2022年モデルよりVDS-5 5W-30に変更（低粘度化）。旧モデルはVDS-4 10W-30。オイルパンのみ約27L（oilL）、フィルター同時交換の追加分約6L（filterL）、合計約33〜35L。整備事例：エレメント同時28L、エレメントなし26〜27L確認。必ずゲージ確認。"
+        note: "UD整備要領書（2010大型トラック別冊）公式値：オイルサンプ27.0L／システム油量33.0L。filterL=6.0Lはシステム油量との差分。2022年モデルよりVDS-5 5W-30に変更（低粘度化）。旧モデルはVDS-4 10W-30。フィルター品番S4430-81380（Φ91mm×H143mm）は整備要領書で確認済み。"
       },
       "GH13": {
         name: "GH13（クオントラクタ12.8L）",
-        oilL: 32.0, oilGrade: "VDS-4 / DH-2 10W-30", filterL: 6.0,
-        needsConfirm: true,
+        oilL: 29.5, oilGrade: "VDS-4 / DH-2 10W-30", filterL: 6.0,
         elementType: "スピンオン式",
         elementNo: "15200-9Z00A / 15200-9Z00B（要確認・GH11と共通の可能性）",
         altElement: "要確認",
-        note: "2023年〜クオントラクタ（GW系）復活。排気量12.8L直6。ベースはボルボD13C型。VDS-4必須。オイルパンのみ約32L（推定・oilL）、フィルター同時交換の追加分約6L（filterL）、合計約38L（推定）。GH11と同系フィルターの可能性あり。oilL・elementNoともに要実測・要確認。"
+        note: "UD整備要領書（2010大型トラック別冊）公式値：オイルサンプ29.5L／システム油量35.5L。filterL=6.0Lはシステム油量との差分。elementNoはGH11と共通の可能性あり。要現車確認。"
       },
       "GH7": {
         name: "GH7（コンドルPK/PW大型相当）",

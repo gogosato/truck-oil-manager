@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>オイル管理システム v1.8</title>
+<title>オイル管理システム v1.9</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
@@ -34,6 +34,12 @@
 //   [ふそう] 6S10 oilL構造確認・noteにパンのみ/フィルター同時の内訳を明記
 //   [ふそう] 6R20 構造確認・noteにパンのみ/フィルター同時の内訳を明記
 //   [UD旧型] MD92/PF6/PE6 elementNo候補を追記
+// v1.9 GH8 公式取扱説明書（給油および給脂14-4）確定値に修正：
+//   [UD] GH8 oilL確定（27.0L）・filterL確定（1.5L）・needsConfirm解除
+//        公式OM記載値：オイルパン容量27L／全容量28.5L
+//        旧値oilL=20.0（根拠不明暫定値）・filterL=3.0（根拠不明）を正式訂正
+//   [UD] GH11 note更新：公式OMと整備要領書の両方で確認済みを明記
+//        公式OM：オイルパン27L／全容量33L（GH8と同パン容量、filterLが大きく異なる）
 // v1.8 GH8 調査結果に基づく修正：
 //   [UD] GH8 oilL・filterL・elementType を要確認状態に更新
 //        公式取扱説明書PDF（UD社403ブロック）・整備要領書（未公開）・みんカラ実測例（確定不可）
@@ -231,12 +237,11 @@ const ENGINE_DB = {
       // 現行型（GH系）
       "GH8": {
         name: "GH8（クオン8L単車）",
-        oilL: 20.0, oilGrade: "VDS-4 / DH-2 5W-30（UD純正メガオイル推奨）", filterL: 3.0,
-        needsConfirm: true,
+        oilL: 27.0, oilGrade: "VDS-4 / DH-2 5W-30（UD純正メガオイル推奨）", filterL: 1.5,
         elementType: "スピンオン式",
         elementNo: "52234-76572 / 52239-58455（GH8-TA用・要確認）",
         altElement: "要確認",
-        note: "⚠️公式一次ソース未取得・現車確認必須。2019年〜現行クオン単車系。排気量7.7L直6。ベースはボルボD8K型。VDS-4（DH-2相当）必須。oilL・filterL・フィルター本数はすべて未確認推定値。UD取扱説明書PDFへのアクセス不可のため実測値不明。現車でゲージ確認またはUDディーラー問い合わせ必須。"
+        note: "UD公式取扱説明書（給油および給脂14-4）確定値：オイルパン容量27L／全容量28.5L。filterL=1.5L（全容量28.5L−パン27L）。GH11もオイルパンは同じ27Lだが全容量が異なる（GH11=33L）。フィルターはGH11用S4430-81380（Φ91mm）と別品番。VDS-4（DH-2相当）必須。"
       },
       "GH11": {
         name: "GH11（クオン11L単車/トラクタ）",
@@ -244,7 +249,7 @@ const ENGINE_DB = {
         elementType: "スピンオン式",
         elementNo: "S4430-81380（Φ91mm×H143mm）",
         altElement: "15200-9Z00A / 15200-9Z00B（要確認）",
-        note: "UD整備要領書（2010大型トラック別冊）公式値：オイルサンプ27.0L／システム油量33.0L。filterL=6.0Lはシステム油量との差分。2022年モデルよりVDS-5 5W-30に変更（低粘度化）。旧モデルはVDS-4 10W-30。フィルター品番S4430-81380（Φ91mm×H143mm）は整備要領書で確認済み。"
+        note: "公式取扱説明書（給油および給脂14-4）および整備要領書（2010大型トラック別冊）の両方で確認。オイルパン容量27L／全容量33L。filterL=6.0L（全容量33L−パン27L）。2022年モデルよりVDS-5 5W-30に変更（低粘度化）。旧モデルはVDS-4 10W-30。フィルター品番S4430-81380（Φ91mm×H143mm）は整備要領書で確認済み。"
       },
       "GH13": {
         name: "GH13（クオントラクタ12.8L）",

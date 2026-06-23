@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>オイル管理システム</title>
+<title>オイル管理システム v1.2</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
@@ -17,56 +17,364 @@
 <div id="root"></div>
 <script type="text/babel">
 
+// ============================================================
+// ENGINE DATABASE（修正・精査版 2025-v2 → UI改善版 v1.2）
+// ※オイル量・エレメント交換時追加量・純正品番は整備資料・
+//   メーカー資料・整備事例を参照し修正。
+//   実際の作業前に必ず車両の取扱説明書で確認すること。
+// v1.2 UI改善内容：
+//   [日野] E13C oilLMax=34.0追加 → 合計量表示を範囲表示（28〜35.5L）に変更
+//   [UD] GH8 elementNo候補品番を整理（主品番/候補品番を分離表示）
+//   [ふそう] 6M60・4V20 noteに共通品番である旨を明記
+//   [UI全般] elementNo・altElementに「要確認」含む場合、🔴バッジを表示
+//   [UI全般] 台帳カードのelementNo表示にも🔴バッジを追加
+// ============================================================
 const ENGINE_DB = {
   isuzu: {
     label: "いすゞ", color: "#003087",
     engines: {
-      "4JJ1": { name: "4JJ1（エルフ小型）", oilL: 7.5, oilGrade: "5W-30", filterL: 0.5 },
-      "4HK1": { name: "4HK1（エルフ中型）", oilL: 11.0, oilGrade: "10W-30", filterL: 0.7 },
-      "6HK1": { name: "6HK1（フォワード）", oilL: 15.0, oilGrade: "10W-30", filterL: 1.0 },
-      "6UZ1": { name: "6UZ1（ギガ）", oilL: 22.0, oilGrade: "10W-30", filterL: 1.5 },
-      "6WG1": { name: "6WG1（ギガ大型）", oilL: 26.0, oilGrade: "10W-30", filterL: 1.5 },
-      "6SD1": { name: "6SD1（旧ギガ）", oilL: 20.0, oilGrade: "15W-40", filterL: 1.5 },
-      "4BD1": { name: "4BD1（旧エルフ）", oilL: 8.5, oilGrade: "15W-40", filterL: 0.5 },
-      "6BG1": { name: "6BG1（旧フォワード）", oilL: 14.0, oilGrade: "15W-40", filterL: 1.0 },
+      // 現行・近年型
+      "4JJ1": {
+        name: "4JJ1（エルフ小型）",
+        oilL: 9.5, oilGrade: "10W-30 または 10W-40 DH-2", filterL: 0.8,
+        elementType: "カートリッジ内蔵式（濾紙交換）",
+        elementNo: "8-98018-858-0",
+        altElement: "FESCO IE-12",
+        note: "DPD装着車。低アッシュ（DH-2）オイル必須。エレメントはケース内の濾紙のみ交換。実測：オイルのみ約9.6L、エレメント同時で約10.4L。必ずゲージ確認。交換後オイルランプリセット要（DPD再生のため）。"
+      },
+      "4HK1": {
+        name: "4HK1（エルフ/フォワード中型）",
+        oilL: 11.5, oilGrade: "10W-30 DH-2", filterL: 0.8,
+        elementType: "スピンオン式",
+        elementNo: "8-97371-334-0",
+        altElement: "FESCO IO-5 / IO-6（年式で異なる）",
+        note: "2010年以降のフォワードはIO-6が適合。エルフ中型はIO-5。"
+      },
+      "6HK1": {
+        name: "6HK1（フォワード大型）",
+        oilL: 16.0, oilGrade: "10W-30 DH-2", filterL: 1.0,
+        elementType: "スピンオン式",
+        elementNo: "8-94391-049-0",
+        altElement: "FESCO IO-2",
+        note: "6HF1（CNG）も同系統。"
+      },
+      "6UZ1": {
+        name: "6UZ1（ギガ標準）",
+        oilL: 28.0, oilGrade: "10W-30 DH-2", filterL: 4.0,
+        elementType: "スピンオン式×2個",
+        elementNo: "1-13240-079-0 / 1-13240-211-0",
+        altElement: "FESCO IE-16",
+        note: "エレメント2個付き。filterLはエレメント2個分の合計。実測：オイルのみ26〜28L、エレメント同時で32〜34L。車型（QKG-CXZ/EXD等）により差あり。必ずゲージ確認。"
+      },
+      "6WG1": {
+        name: "6WG1（ギガ大型/トラクタ）",
+        oilL: 26.5, oilGrade: "10W-30 DH-2", filterL: 4.0,
+        elementType: "スピンオン式×2個",
+        elementNo: "1-13240-079-0 / 1-13240-211-0",
+        altElement: "FESCO IE-16",
+        note: "エレメント2個付き。filterLはエレメント2個分の合計。6UZ1より旧世代で現在は単車では6UZ1に置換済み（トラクタ・消防車等に残存）。"
+      },
+      "6NX1": {
+        name: "6NX1（ギガ/フォワード中間）",
+        oilL: 22.0, oilGrade: "10W-30 DH-2", filterL: 4.0,
+        elementType: "スピンオン式×2個",
+        elementNo: "1-13240-079-0",
+        altElement: "FESCO IE-16",
+        note: "ギガ系エンジン。エレメント2個付き。filterLはエレメント2個分の合計。フォワード大型・ギガ単車系に搭載。"
+      },
+      // 旧型
+      "6SD1": {
+        name: "6SD1（旧ギガ）",
+        oilL: 20.0, oilGrade: "15W-40 DH-1", filterL: 1.5,
+        elementType: "スピンオン式",
+        elementNo: "1-13240-160-0",
+        altElement: "FESCO IE-16",
+        note: "旧型。DH-1対応オイル可。"
+      },
+      "4BD1": {
+        name: "4BD1（旧エルフ）",
+        oilL: 8.5, oilGrade: "15W-40 DH-1", filterL: 0.5,
+        elementType: "スピンオン式",
+        elementNo: "8-94391-049-2",
+        altElement: "FESCO IO-5",
+        note: "旧型。"
+      },
+      "6BG1": {
+        name: "6BG1（旧フォワード）",
+        oilL: 14.0, oilGrade: "15W-40 DH-1", filterL: 1.0,
+        elementType: "スピンオン式",
+        elementNo: "8-94391-049-2",
+        altElement: "FESCO IO-2",
+        note: "旧型。"
+      },
     }
   },
+
   hino: {
     label: "日野", color: "#CC0000",
     engines: {
-      "N04C": { name: "N04C（デュトロ小型）", oilL: 7.0, oilGrade: "5W-30", filterL: 0.5 },
-      "J05E": { name: "J05E（レンジャー中型）", oilL: 12.0, oilGrade: "10W-30", filterL: 0.8 },
-      "J07E": { name: "J07E（レンジャー大型）", oilL: 16.0, oilGrade: "10W-30", filterL: 1.0 },
-      "A09C": { name: "A09C（プロフィア）", oilL: 24.0, oilGrade: "10W-30", filterL: 1.5 },
-      "E13C": { name: "E13C（プロフィア大型）", oilL: 28.0, oilGrade: "10W-30", filterL: 1.5 },
-      "P11C": { name: "P11C（旧プロフィア）", oilL: 25.0, oilGrade: "15W-40", filterL: 1.5 },
-      "J08C": { name: "J08C（旧レンジャー）", oilL: 15.0, oilGrade: "15W-40", filterL: 1.0 },
-      "W04D": { name: "W04D（旧デュトロ）", oilL: 8.0, oilGrade: "15W-40", filterL: 0.5 },
+      // 現行・近年型
+      "N04C": {
+        name: "N04C（デュトロ小型）",
+        oilL: 7.0, oilGrade: "10W-30 DH-2", filterL: 0.8,
+        elementType: "カートリッジ内蔵式（濾紙交換）",
+        elementNo: "15607-1690",
+        altElement: "FESCO HNO-16",
+        note: "車型（XZU/XZB等）でオイルパン形状が異なり6.5〜8.5Lの差あり。フィルター同時交換時は実測約7.0Lが目安（XZU系）。XZB系はオイルパン容量大のため8.5L前後になる場合あり。DPR装着車はFULLを超えた給油厳禁（日野技術資料より）。必ずゲージ確認。"
+      },
+      "J05E": {
+        name: "J05E（レンジャー中型）",
+        oilL: 13.0, oilGrade: "10W-30 DH-2", filterL: 1.0,
+        elementType: "スピンオン式",
+        elementNo: "15607-2190",
+        altElement: "FESCO HNO-11",
+        note: "J05D（旧型）も同系統。"
+      },
+      "A05C": {
+        name: "A05C（現行レンジャー中型）",
+        oilL: 13.0, oilGrade: "10W-30 DH-2", filterL: 1.0,
+        elementType: "スピンオン式",
+        elementNo: "15607-2190（要確認：J05Eと共通の可能性あり）",
+        altElement: "FESCO HNO-11",
+        note: "2015年登場の5.1L直列4気筒エンジン（J05Eの後継ではなく新設計）。現行レンジャー中型・ブルーリボンハイブリッド・セレガ9m車等に搭載。品番・油量はJ05Eと同等とされるが、年式・仕様で差異あり。必ず取説確認。"
+      },
+      "J07E": {
+        name: "J07E（レンジャー大型/コンドル）",
+        oilL: 16.0, oilGrade: "10W-30 DH-2", filterL: 1.0,
+        elementType: "スピンオン式",
+        elementNo: "15607-2190",
+        altElement: "FESCO HNO-11",
+        note: "レンジャー大型・UDコンドル旧型にも搭載。7Lクラスエンジン。必ずゲージで確認。"
+      },
+      "A09C": {
+        name: "A09C（プロフィア）",
+        oilL: 27.0, oilGrade: "10W-30 DH-2", filterL: 2.0,
+        elementType: "スピンオン式",
+        elementNo: "15607-3890",
+        altElement: "FESCO HNO-16（要確認）",
+        note: "現行プロフィア。E13Cとの混在年式に注意。"
+      },
+      "E13C": {
+        name: "E13C（プロフィア大型）",
+        oilL: 28.0, oilLMax: 34.0, oilGrade: "10W-30 DH-2", filterL: 1.5,
+        elementType: "大型スピンオン式",
+        elementNo: "15607-3890",
+        altElement: "FESCO HNO-16（要確認）",
+        note: "実測で30〜34L入るケースあり。filterL（エレメント追加量）は約1.5L。必ずゲージで確認。"
+      },
+      "J08E": {
+        name: "J08E（セレガ/旧プロフィアバス）",
+        oilL: 22.0, oilGrade: "10W-30 DH-2", filterL: 2.0,
+        elementType: "スピンオン式",
+        elementNo: "15607-2390",
+        altElement: "FESCO HNO-16",
+        note: "バス系に多い。トラックへの搭載例は少ない。"
+      },
+      // 旧型
+      "P11C": {
+        name: "P11C（旧プロフィア）",
+        oilL: 25.0, oilGrade: "15W-40 DH-1", filterL: 1.5,
+        elementType: "スピンオン式",
+        elementNo: "15607-3890",
+        altElement: "要確認",
+        note: "旧型大型。"
+      },
+      "J08C": {
+        name: "J08C（旧レンジャー）",
+        oilL: 15.0, oilGrade: "15W-40 DH-1", filterL: 1.0,
+        elementType: "スピンオン式",
+        elementNo: "15607-2390",
+        altElement: "要確認",
+        note: "旧型中型。"
+      },
+      "W04D": {
+        name: "W04D（旧デュトロ）",
+        oilL: 8.0, oilGrade: "15W-40 DH-1", filterL: 0.5,
+        elementType: "スピンオン式",
+        elementNo: "15607-1690（要確認：N04Cと同品番）",
+        altElement: "FESCO HNO-16",
+        note: "旧型小型。現行N04Cと品番が同一のため、旧型・現行共通品番か要確認。"
+      },
     }
   },
+
   ud: {
     label: "UDトラックス", color: "#E8830C",
     engines: {
-      "4H":   { name: "4H（カゼット小型）", oilL: 9.5, oilGrade: "5W-30", filterL: 0.6 },
-      "MD92": { name: "MD92（コンドル中型）", oilL: 14.0, oilGrade: "10W-30", filterL: 1.0 },
-      "GH8":  { name: "GH8（クオン）", oilL: 22.0, oilGrade: "10W-30", filterL: 1.5 },
-      "GH13": { name: "GH13（クオン大型）", oilL: 27.0, oilGrade: "10W-30", filterL: 1.5 },
-      "PF6":  { name: "PF6（旧クオン）", oilL: 23.0, oilGrade: "15W-40", filterL: 1.5 },
-      "PE6":  { name: "PE6（旧コンドル）", oilL: 13.0, oilGrade: "15W-40", filterL: 1.0 },
-      "FE6":  { name: "FE6（旧コンドル中型）", oilL: 11.0, oilGrade: "15W-40", filterL: 0.8 },
-      "RF8":  { name: "RF8（旧コンドル大型）", oilL: 20.0, oilGrade: "15W-40", filterL: 1.5 },
+      // 現行型（GH系）
+      "GH8": {
+        name: "GH8（クオン8L単車）",
+        oilL: 19.0, oilGrade: "VDS-4 / DH-2 5W-30", filterL: 2.0,
+        elementType: "スピンオン式",
+        elementNo: "S4430-81380",
+        elementNoAlt: "15200-9Z00A / 15200-9Z00B（候補品番・要確認）",
+        altElement: "52234-76572（要確認）",
+        note: "2019年〜現行クオン単車系。排気量7.7L直6。VDS-4規格（DH-2相当）必須。ボルボグループ系エンジン。実測18〜20L。GH11（26〜28L）と混同注意。必ずゲージ確認。"
+      },
+      "GH11": {
+        name: "GH11（クオン11L単車/トラクタ）",
+        oilL: 27.0, oilGrade: "VDS-4 / DH-2 10W-30", filterL: 2.5,
+        elementType: "スピンオン式",
+        elementNo: "15200-9Z00A / 15200-9Z00B（要確認）",
+        altElement: "要確認",
+        note: "現行クオン主力エンジン。排気量10.8L直6。ベースはボルボD11C型。VDS-4規格必須。実測26〜28L。oilLは標準値27L。エレメント同時交換で2〜3L増。必ずゲージ確認。"
+      },
+      "GH13": {
+        name: "GH13（クオントラクタ12.8L）",
+        oilL: 32.0, oilGrade: "VDS-4 / DH-2 10W-30", filterL: 3.0,
+        elementType: "スピンオン式",
+        elementNo: "要確認",
+        altElement: "要確認",
+        note: "2023年〜クオントラクタ（GW系）復活。排気量12.8L直6。ベースはボルボD13C型。VDS-4必須。oilLは推定値。必ずゲージ確認。"
+      },
+      "GH7": {
+        name: "GH7（コンドルPK/PW大型相当）",
+        oilL: 17.0, oilGrade: "10W-30 DH-2", filterL: 1.5,
+        elementType: "スピンオン式",
+        elementNo: "要確認",
+        altElement: "要確認",
+        note: "排気量7.0L直6。コンドルPK・PW系の一部に搭載。GH5の6気筒版。"
+      },
+      "GH5": {
+        name: "GH5（コンドルMK/LK中型）",
+        oilL: 12.0, oilGrade: "10W-30 DH-2", filterL: 1.5,
+        elementType: "スピンオン式",
+        elementNo: "要確認",
+        altElement: "要確認",
+        note: "排気量4.7L直4。コンドルMK系全車・LK系に搭載。中型用GH系エンジン。oilLは参考値。"
+      },
+      // 旧型
+      "4H": {
+        name: "4H（コンドル小型）",
+        oilL: 9.5, oilGrade: "5W-30 DH-2", filterL: 0.6,
+        elementType: "スピンオン式",
+        elementNo: "要確認",
+        altElement: "FESCO ME-13",
+        note: "UDコンドル小型。三菱ふそうキャンターとはOEM関係なし（車名「カゼット」はUD旧ブランドの別型式）。"
+      },
+      "MD92": {
+        name: "MD92（旧コンドル中型）",
+        oilL: 14.0, oilGrade: "10W-30 DH-1", filterL: 1.0,
+        elementType: "スピンオン式",
+        elementNo: "要確認",
+        altElement: "FESCO MO-8",
+        note: "旧型コンドル。"
+      },
+      "PF6": {
+        name: "PF6（旧クオン）",
+        oilL: 23.0, oilGrade: "15W-40 DH-1", filterL: 1.5,
+        elementType: "スピンオン式",
+        elementNo: "要確認",
+        altElement: "FESCO MO-8",
+        note: "旧型大型。"
+      },
+      "PE6": {
+        name: "PE6（旧コンドル大型）",
+        oilL: 16.0, oilGrade: "15W-40 DH-1", filterL: 1.0,
+        elementType: "スピンオン式",
+        elementNo: "要確認",
+        altElement: "FESCO MO-8",
+        note: "旧型大型。大型エンジンのため実測15〜18L程度。必ずゲージ確認。"
+      },
+      "FE6": {
+        name: "FE6（旧コンドル中型）",
+        oilL: 11.0, oilGrade: "15W-40 DH-1", filterL: 0.8,
+        elementType: "スピンオン式",
+        elementNo: "要確認",
+        altElement: "FESCO IO-5 / MO-8",
+        note: "旧型。"
+      },
+      "RF8": {
+        name: "RF8（旧コンドル/旧ビッグサム）",
+        oilL: 20.0, oilGrade: "15W-40 DH-1", filterL: 1.5,
+        elementType: "スピンオン式",
+        elementNo: "要確認",
+        altElement: "FESCO MO-8",
+        note: "旧型大型。ビッグサムに搭載例あり。"
+      },
+    }
+  },
+
+  fuso: {
+    label: "三菱ふそう", color: "#CC0033",
+    engines: {
+      // 現行・近年型
+      "4P10": {
+        name: "4P10（キャンター現行）",
+        oilL: 6.2, oilGrade: "5W-30 DH-2", filterL: 0.5,
+        elementType: "カートリッジ内蔵式（濾紙交換）",
+        elementNo: "ME013307",
+        altElement: "FESCO ME-13",
+        note: "DPF装着。DH-2低アッシュオイル必須。エレメントはケース内の濾紙のみ交換（スピンオン式ではない）。交換後オイルダイリューションリセット必須（アクセル全開20秒→ブレーキ6回踏み）。オイルパンはアルミのためドレンボルトの締め付けトルク厳守（41Nm）。"
+      },
+      "4M50": {
+        name: "4M50（旧キャンター/ローザ大型）",
+        oilL: 10.0, oilGrade: "10W-30 DH-2", filterL: 0.8,
+        elementType: "スピンオン式",
+        elementNo: "ME013307 / MK667932",
+        altElement: "FESCO MO-2",
+        note: "4M42の後継。キャンター大型。"
+      },
+      "4M42": {
+        name: "4M42（旧キャンター）",
+        oilL: 9.5, oilGrade: "10W-30 DH-1", filterL: 0.8,
+        elementType: "スピンオン式",
+        elementNo: "ME013307",
+        altElement: "FESCO MO-2",
+        note: "2010年以前のキャンター。"
+      },
+      "4V20": {
+        name: "4V20（ファイター準中型）",
+        oilL: 13.0, oilGrade: "10W-30 DH-2", filterL: 1.0,
+        elementType: "スピンオン式",
+        elementNo: "ME230256",
+        altElement: "FESCO MO-8",
+        note: "2018年〜。GVW7.5t・8t車。4気筒OHV。エレメント品番・油量は6M60と共通（確認済み）。"
+      },
+      "6M60": {
+        name: "6M60（ファイター）",
+        oilL: 13.0, oilGrade: "10W-30 DH-2", filterL: 1.0,
+        elementType: "スピンオン式",
+        elementNo: "ME230256",
+        altElement: "FESCO MO-8",
+        note: "現行ファイター。直6。エレメント品番・油量は4V20（準中型）と共通（確認済み）。"
+      },
+      "6S10": {
+        name: "6S10（スーパーグレート）",
+        oilL: 20.0, oilGrade: "10W-30 DH-2", filterL: 2.0,
+        elementType: "スピンオン式",
+        elementNo: "ME230256",
+        altElement: "要確認",
+        note: "7.7L直6。スーパーグレート現行。アシンメトリックターボ搭載。実測19〜21L。"
+      },
+      "6R20": {
+        name: "6R20（スーパーグレート大型）",
+        oilL: 28.0, oilGrade: "10W-30 DH-2", filterL: 3.0,
+        elementType: "スピンオン式×2個",
+        elementNo: "MZ690248（要確認）",
+        altElement: "要確認",
+        note: "10.7L直6。スーパーグレート旧型大型。エレメント2個の場合あり。filterLは2個分合計。"
+      },
+      "6R30": {
+        name: "6R30（スーパーグレート新型）",
+        oilL: 28.0, oilGrade: "10W-30 DH-2", filterL: 3.0,
+        elementType: "スピンオン式",
+        elementNo: "要確認",
+        altElement: "要確認",
+        note: "2023年〜新型スーパーグレート。6R20比で燃費効率が大幅改善。"
+      },
     }
   }
 };
 
 const MAKERS = Object.keys(ENGINE_DB);
-const STORAGE_KEY = "truck_fleet_v1";
+const STORAGE_KEY = "truck_fleet_v2";
 
 function loadFleet() {
   try { const r = localStorage.getItem(STORAGE_KEY); return r ? JSON.parse(r) : []; }
   catch { return []; }
 }
-function saveFleet(f) { localStorage.setItem(STORAGE_KEY, JSON.stringify(f)); }
+function saveFleet(f) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(f)); } catch {} }
 
 function App() {
   const [tab, setTab] = React.useState("lookup");
@@ -91,12 +399,14 @@ function App() {
 
   const engineInfo = maker && engine ? ENGINE_DB[maker].engines[engine] : null;
   const totalOil = engineInfo ? (engineInfo.oilL + (withFilter ? engineInfo.filterL : 0)).toFixed(1) : null;
+  const totalOilMax = engineInfo && engineInfo.oilLMax ? (engineInfo.oilLMax + (withFilter ? engineInfo.filterL : 0)).toFixed(1) : null;
   const mc = maker ? ENGINE_DB[maker].color : "#333";
+  const isUnconfirmed = (str) => str && (str.includes("要確認") || str.includes("推定"));
 
   function addTruck() {
-    if (!addForm.vin.trim()) { setAddError("車体番号を入力してください"); return; }
-    if (!addForm.maker)      { setAddError("メーカーを選択してください"); return; }
-    if (!addForm.engine)     { setAddError("エンジン型式を選択してください"); return; }
+    if (!addForm.vin.trim())  { setAddError("車体番号を入力してください"); return; }
+    if (!addForm.maker)       { setAddError("メーカーを選択してください"); return; }
+    if (!addForm.engine)      { setAddError("エンジン型式を選択してください"); return; }
     if (fleet.find(t => t.vin === addForm.vin.trim())) { setAddError("同じ車体番号が既に登録されています"); return; }
     const nf = [...fleet, { ...addForm, vin: addForm.vin.trim(), records: [] }];
     setFleet(nf); saveFleet(nf);
@@ -114,7 +424,7 @@ function App() {
     const info = ENGINE_DB[recordTarget.maker].engines[recordTarget.engine];
     const oil = (info.oilL + (recWithFilter ? info.filterL : 0)).toFixed(1);
     const nf = fleet.map(t => t.vin !== recordTarget.vin ? t : {
-      ...t, records: [...(t.records||[]), { date: recordDate, mileage: recordMileage, oil, note: recordNote }]
+      ...t, records: [...(t.records||[]), { date: recordDate, mileage: recordMileage, oil, withFilter: recWithFilter, note: recordNote }]
     });
     setFleet(nf); saveFleet(nf);
     setRecordTarget(null); setRecordMileage(""); setRecordNote("");
@@ -122,22 +432,21 @@ function App() {
 
   const latestRecord = t => t.records?.length ? t.records[t.records.length-1] : null;
 
-  // --- CSS-in-JS ---
   const S = {
     root:   { minHeight:"100vh", background:"#f4f5f7" },
     header: { background:"#1a1a2e", padding:"0 16px", position:"sticky", top:0, zIndex:100, boxShadow:"0 2px 8px rgba(0,0,0,.3)" },
-    hInner: { maxWidth:900, margin:"0 auto", display:"flex", alignItems:"center", justifyContent:"space-between", height:58 },
+    hInner: { maxWidth:960, margin:"0 auto", display:"flex", alignItems:"center", justifyContent:"space-between", height:58 },
     logoWrap:{ display:"flex", alignItems:"center", gap:10 },
     logoT:  { color:"#fff", fontWeight:800, fontSize:16, letterSpacing:1 },
     logoS:  { color:"#aaa", fontSize:9, letterSpacing:2 },
     nav:    { display:"flex", gap:6 },
     navBtn: { background:"transparent", color:"#ccc", border:"none", padding:"6px 14px", borderRadius:6, cursor:"pointer", fontSize:13, fontWeight:500 },
     navAct: { background:"#fff", color:"#1a1a2e", fontWeight:700 },
-    main:   { maxWidth:900, margin:"24px auto", padding:"0 14px" },
+    main:   { maxWidth:960, margin:"24px auto", padding:"0 14px" },
     card:   { background:"#fff", borderRadius:14, padding:24, boxShadow:"0 2px 12px rgba(0,0,0,.08)", marginBottom:16 },
     title:  { fontSize:17, fontWeight:700, marginBottom:18, color:"#1a1a2e" },
     makerRow:{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:14 },
-    mkBtn:  (m, sel) => ({ padding:"9px 18px", borderRadius:8, border:"2px solid "+ENGINE_DB[m].color,
+    mkBtn:  (m, sel) => ({ padding:"9px 16px", borderRadius:8, border:"2px solid "+ENGINE_DB[m].color,
               background: sel ? ENGINE_DB[m].color : "#f0f0f0", color: sel ? "#fff" : "#333",
               fontWeight:700, fontSize:13, cursor:"pointer" }),
     field:  { marginBottom:14 },
@@ -149,40 +458,51 @@ function App() {
     badge:  (c) => ({ display:"inline-block", background:c, color:"#fff", borderRadius:6, padding:"3px 12px", fontSize:12, fontWeight:700, marginBottom:12 }),
     rRow:   { display:"flex", justifyContent:"space-between", alignItems:"center", padding:"7px 0", borderBottom:"1px solid #f0f0f0" },
     rLabel: { color:"#666", fontSize:13 },
-    rVal:   { fontWeight:700, fontSize:18, color:"#1a1a2e" },
+    rVal:   { fontWeight:700, fontSize:15, color:"#1a1a2e", textAlign:"right", maxWidth:"60%" },
+    rValSm: { fontWeight:600, fontSize:13, color:"#1a1a2e", textAlign:"right", maxWidth:"65%" },
     totBox: (c) => ({ background:c, borderRadius:10, padding:"12px 18px", display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:14 }),
-    totLbl: { color:"rgba(255,255,255,.85)", fontSize:13, fontWeight:600 },
-    totNum: { color:"#fff", fontSize:30, fontWeight:800 },
-    fHeader:{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:18 },
-    addBtn: { background:"#1a1a2e", color:"#fff", border:"none", borderRadius:8, padding:"9px 18px", fontSize:13, fontWeight:700, cursor:"pointer" },
-    empty:  { textAlign:"center", padding:"50px 20px", background:"#fff", borderRadius:14, boxShadow:"0 2px 12px rgba(0,0,0,.08)" },
+    totLbl: { color:"rgba(255,255,255,0.85)", fontSize:13, fontWeight:600 },
+    totNum: { color:"#fff", fontSize:28, fontWeight:800 },
+    noteBox:{ background:"#fffbe6", border:"1px solid #ffe58f", borderRadius:8, padding:"10px 14px", marginTop:12, fontSize:12, color:"#7c5e00", lineHeight:1.6 },
+    warn:   { background:"#fff2f0", border:"1px solid #ffccc7", borderRadius:8, padding:"8px 14px", marginTop:8, fontSize:11, color:"#a8071a" },
+    unconfirmedBadge: { display:"inline-block", background:"#ff4d4f", color:"#fff", borderRadius:4, padding:"1px 6px", fontSize:10, fontWeight:700, marginLeft:6, verticalAlign:"middle" },
+    oilRangeNote: { fontSize:11, color:"#7c5e00", marginTop:4, background:"#fffbe6", borderRadius:5, padding:"3px 8px", display:"inline-block" },
+    elementNoAltRow: { fontSize:11, color:"#888", padding:"4px 0 6px", borderBottom:"1px solid #f0f0f0" },
+
+    // 台帳
+    ledgerHead: { display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 },
+    addBtn: { background:"#1a1a2e", color:"#fff", border:"none", borderRadius:8, padding:"9px 18px", fontWeight:700, fontSize:13, cursor:"pointer" },
+    empty:  { textAlign:"center", padding:"40px 20px", color:"#aaa" },
     grid:   { display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:14 },
-    tCard:  { background:"#fff", borderRadius:12, overflow:"hidden", boxShadow:"0 2px 10px rgba(0,0,0,.08)" },
-    tHead:  (c) => ({ background:c, padding:"10px 14px", display:"flex", justifyContent:"space-between", alignItems:"flex-start" }),
+    tCard:  { background:"#fff", borderRadius:12, overflow:"hidden", boxShadow:"0 2px 10px rgba(0,0,0,.07)" },
+    tHead:  (c) => ({ background:c, padding:"12px 16px", display:"flex", justifyContent:"space-between", alignItems:"flex-start" }),
     tVin:   { color:"#fff", fontWeight:800, fontSize:14 },
-    tNick:  { color:"rgba(255,255,255,.8)", fontSize:11, marginTop:2 },
-    tTag:   { background:"rgba(255,255,255,.2)", color:"#fff", borderRadius:4, padding:"2px 7px", fontSize:10, fontWeight:700 },
-    tBody:  { padding:12 },
-    tInfo:  { display:"flex", justifyContent:"space-between", padding:"4px 0", fontSize:12 },
+    tNick:  { color:"rgba(255,255,255,0.8)", fontSize:11, marginTop:2 },
+    tTag:   { background:"rgba(255,255,255,0.2)", color:"#fff", fontSize:10, fontWeight:700, padding:"2px 8px", borderRadius:4 },
+    tBody:  { padding:"14px 16px" },
+    tInfo:  { display:"flex", justifyContent:"space-between", alignItems:"center", padding:"5px 0", borderBottom:"1px solid #f5f5f5", fontSize:13 },
     tIL:    { color:"#888" },
-    tIV:    { fontWeight:600, color:"#333" },
-    lastRec:{ fontSize:11, color:"#888", background:"#f8f8f8", borderRadius:6, padding:"4px 8px", marginTop:6 },
-    actions:{ display:"flex", gap:6, marginTop:10 },
-    actBtn: (c) => ({ flex:1, background:c, color:"#fff", border:"none", borderRadius:7, padding:"7px", fontSize:12, fontWeight:700, cursor:"pointer" }),
-    delBtn: { background:"transparent", color:"#ccc", border:"1px solid #ddd", borderRadius:7, padding:"7px 10px", fontSize:12, cursor:"pointer" },
-    histW:  { marginTop:10, borderTop:"1px solid #f0f0f0", paddingTop:8 },
-    histS:  { fontSize:12, color:"#888", cursor:"pointer", marginBottom:6 },
-    tbl:    { width:"100%", borderCollapse:"collapse", fontSize:11 },
-    th:     { textAlign:"left", padding:"3px 5px", color:"#999", fontWeight:600, borderBottom:"1px solid #eee" },
-    td:     { padding:"4px 5px", color:"#555" },
-    overlay:{ position:"fixed", inset:0, background:"rgba(0,0,0,.5)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:200, padding:14 },
-    modal:  { background:"#fff", borderRadius:14, padding:24, width:"100%", maxWidth:460, maxHeight:"90vh", overflowY:"auto", boxShadow:"0 8px 40px rgba(0,0,0,.2)" },
-    mTitle: { fontSize:17, fontWeight:700, marginBottom:18, color:"#1a1a2e" },
-    mActs:  { display:"flex", gap:8, marginTop:18, justifyContent:"flex-end" },
-    cancBtn:{ background:"#f0f0f0", color:"#555", border:"none", borderRadius:8, padding:"9px 18px", fontSize:13, cursor:"pointer", fontWeight:600 },
-    saveBtn:{ background:"#1a1a2e", color:"#fff", border:"none", borderRadius:8, padding:"9px 22px", fontSize:13, cursor:"pointer", fontWeight:700 },
-    error:  { color:"#cc0000", fontSize:12, background:"#fff0f0", borderRadius:6, padding:"7px 10px", marginBottom:8 },
-    infoBox:(c) => ({ background:c, color:"#fff", borderRadius:8, padding:"7px 12px", marginBottom:14, fontSize:13, fontWeight:600 }),
+    tIV:    { fontWeight:600, color:"#222" },
+    tElm:   { fontSize:11, color:"#666", padding:"6px 0", borderBottom:"1px solid #f5f5f5" },
+    lastRec:{ fontSize:11, color:"#888", margin:"8px 0 4px", background:"#f9f9f9", borderRadius:6, padding:"5px 8px" },
+    actions:{ display:"flex", gap:8, marginTop:10 },
+    actBtn: (c) => ({ flex:1, background:c, color:"#fff", border:"none", borderRadius:7, padding:"8px 0", fontWeight:700, fontSize:12, cursor:"pointer" }),
+    delBtn: { background:"#fff", color:"#cc3333", border:"1.5px solid #cc3333", borderRadius:7, padding:"8px 14px", fontWeight:700, fontSize:12, cursor:"pointer" },
+    histW:  { marginTop:10 },
+    histS:  { fontSize:12, color:"#555", cursor:"pointer", padding:"4px 0" },
+    tbl:    { width:"100%", borderCollapse:"collapse", marginTop:6, fontSize:12 },
+    th:     { background:"#f5f5f5", padding:"5px 8px", textAlign:"left", fontWeight:600, color:"#555", borderBottom:"2px solid #eee" },
+    td:     { padding:"5px 8px", borderBottom:"1px solid #f0f0f0", color:"#333" },
+
+    // モーダル
+    overlay:{ position:"fixed", inset:0, background:"rgba(0,0,0,.5)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:200, padding:"16px" },
+    modal:  { background:"#fff", borderRadius:16, padding:24, width:"100%", maxWidth:480, maxHeight:"90vh", overflowY:"auto" },
+    mTitle: { fontSize:17, fontWeight:800, marginBottom:18, color:"#1a1a2e" },
+    mActs:  { display:"flex", gap:10, marginTop:20 },
+    cancBtn:{ flex:1, background:"#f0f0f0", color:"#333", border:"none", borderRadius:8, padding:"11px 0", fontWeight:700, cursor:"pointer" },
+    saveBtn:{ flex:2, background:"#1a1a2e", color:"#fff", border:"none", borderRadius:8, padding:"11px 0", fontWeight:700, cursor:"pointer" },
+    error:  { color:"#cc3333", fontSize:12, marginTop:6, background:"#fff0f0", borderRadius:6, padding:"6px 10px" },
+    infoBox:(c) => ({ background:c+"22", border:"1.5px solid "+c, borderRadius:8, padding:"10px 14px", marginBottom:14, fontWeight:700, color:c, fontSize:14 }),
   };
 
   return (
@@ -190,33 +510,35 @@ function App() {
       <header style={S.header}>
         <div style={S.hInner}>
           <div style={S.logoWrap}>
-            <span style={{fontSize:26}}>🛻</span>
             <div>
-              <div style={S.logoT}>オイル管理システム</div>
+              <div style={S.logoT}>🚚 オイル管理システム</div>
               <div style={S.logoS}>TRUCK OIL MANAGER</div>
             </div>
           </div>
           <nav style={S.nav}>
-            {[{k:"lookup",l:"エンジン検索"},{k:"fleet",l:`車両台帳 (${fleet.length})`}].map(({k,l})=>(
-              <button key={k} style={{...S.navBtn,...(tab===k?S.navAct:{})}} onClick={()=>setTab(k)}>{l}</button>
+            {[["lookup","🔍 検索"],["fleet","📋 台帳"]].map(([k,v])=>(
+              <button key={k} style={{...S.navBtn,...(tab===k?S.navAct:{})}} onClick={()=>setTab(k)}>{v}</button>
             ))}
           </nav>
         </div>
       </header>
 
       <main style={S.main}>
-
-        {/* 検索タブ */}
-        {tab==="lookup" && (
+        {tab === "lookup" && (
           <div style={S.card}>
-            <div style={S.title}>オイル量クイック検索</div>
-            <div style={S.makerRow}>
-              {MAKERS.map(m=>(
-                <button key={m} style={S.mkBtn(m, maker===m)} onClick={()=>{setMaker(m);setEngine("");}}>
-                  {ENGINE_DB[m].label}
-                </button>
-              ))}
+            <div style={S.title}>エンジン型式検索</div>
+
+            <div style={S.field}>
+              <label style={S.label}>メーカー</label>
+              <div style={S.makerRow}>
+                {MAKERS.map(m=>(
+                  <button key={m} style={S.mkBtn(m, maker===m)} onClick={()=>{setMaker(m);setEngine("");}}>
+                    {ENGINE_DB[m].label}
+                  </button>
+                ))}
+              </div>
             </div>
+
             {maker && (
               <div style={S.field}>
                 <label style={S.label}>エンジン型式</label>
@@ -228,32 +550,84 @@ function App() {
                 </select>
               </div>
             )}
+
             {engineInfo && (
-              <label style={S.chkRow}>
-                <input type="checkbox" checked={withFilter} onChange={e=>setWithFilter(e.target.checked)}
-                  style={{width:17,height:17,accentColor:mc}}/>
-                オイルフィルター同時交換 (+{engineInfo.filterL}L)
-              </label>
-            )}
-            {engineInfo && (
-              <div style={S.result(mc)}>
-                <div style={S.badge(mc)}>{ENGINE_DB[maker].label} / {engine}</div>
-                <div style={S.rRow}><span style={S.rLabel}>エンジンオイル</span><span style={S.rVal}>{engineInfo.oilL} L</span></div>
-                {withFilter && <div style={S.rRow}><span style={S.rLabel}>フィルター込み</span><span style={S.rVal}>{totalOil} L</span></div>}
-                <div style={S.rRow}><span style={S.rLabel}>推奨グレード</span><span style={{...S.rVal,fontSize:17}}>{engineInfo.oilGrade}</span></div>
-                <div style={S.totBox(mc)}>
-                  <span style={S.totLbl}>交換オイル量</span>
-                  <span style={S.totNum}>{totalOil} L</span>
+              <div>
+                <label style={{...S.chkRow, marginBottom:0}} onClick={()=>setWithFilter(!withFilter)}>
+                  <input type="checkbox" checked={withFilter} onChange={()=>{}} style={{width:17,height:17,pointerEvents:"none"}}/>
+                  オイルエレメント同時交換
+                </label>
+
+                <div style={S.result(mc)}>
+                  <span style={S.badge(mc)}>{ENGINE_DB[maker].label} / {engine}</span>
+
+                  <div style={S.rRow}>
+                    <span style={S.rLabel}>車種</span>
+                    <span style={S.rVal}>{engineInfo.name}</span>
+                  </div>
+                  <div style={S.rRow}>
+                    <span style={S.rLabel}>オイル量（ドレン抜き）</span>
+                    <span style={S.rVal}>
+                      {engineInfo.oilL.toFixed(1)} L
+                      {engineInfo.oilLMax && <span style={S.oilRangeNote}>実測 〜{engineInfo.oilLMax.toFixed(1)} L（ゲージ確認必須）</span>}
+                    </span>
+                  </div>
+                  {withFilter && (
+                    <div style={S.rRow}>
+                      <span style={S.rLabel}>エレメント交換時追加量</span>
+                      <span style={S.rVal}>+ {engineInfo.filterL.toFixed(1)} L</span>
+                    </div>
+                  )}
+                  <div style={S.rRow}>
+                    <span style={S.rLabel}>推奨オイルグレード</span>
+                    <span style={S.rVal}>{engineInfo.oilGrade}</span>
+                  </div>
+                  <div style={S.rRow}>
+                    <span style={S.rLabel}>エレメント形式</span>
+                    <span style={S.rValSm}>{engineInfo.elementType}</span>
+                  </div>
+                  <div style={S.rRow}>
+                    <span style={S.rLabel}>純正品番</span>
+                    <span style={S.rValSm}>
+                      {isUnconfirmed(engineInfo.elementNo) && <span style={S.unconfirmedBadge}>🔴 要確認</span>}
+                      {" "}{engineInfo.elementNo.replace("（要確認）","").replace("（要確認：","(").replace("）",")")}
+                      {engineInfo.elementNoAlt && (
+                        <div style={S.elementNoAltRow}>📎 候補: {engineInfo.elementNoAlt}</div>
+                      )}
+                    </span>
+                  </div>
+                  <div style={S.rRow}>
+                    <span style={S.rLabel}>社外代替（参考）</span>
+                    <span style={S.rValSm}>
+                      {isUnconfirmed(engineInfo.altElement) && <span style={S.unconfirmedBadge}>🔴 要確認</span>}
+                      {" "}{engineInfo.altElement}
+                    </span>
+                  </div>
+
+                  <div style={S.totBox(mc)}>
+                    <span style={S.totLbl}>{withFilter?"エレメント同時交換量":"オイルのみ交換量"}</span>
+                    <span style={S.totNum}>
+                      {totalOil} L{totalOilMax && <span style={{fontSize:14,fontWeight:600,marginLeft:6}}>〜 {totalOilMax} L</span>}
+                    </span>
+                  </div>
+
+                  {engineInfo.note && (
+                    <div style={S.noteBox}>
+                      ⚠ {engineInfo.note}
+                    </div>
+                  )}
+                  <div style={S.warn}>
+                    ※ データは参考値です。実際の交換前に必ずオイルゲージで確認し、車両の取扱説明書に従ってください。
+                  </div>
                 </div>
               </div>
             )}
           </div>
         )}
 
-        {/* 台帳タブ */}
-        {tab==="fleet" && (
-          <div>
-            <div style={S.fHeader}>
+        {tab === "fleet" && (
+          <div style={S.card}>
+            <div style={S.ledgerHead}>
               <div style={S.title}>車両台帳</div>
               <button style={S.addBtn} onClick={()=>setShowAdd(true)}>＋ 車両を追加</button>
             </div>
@@ -266,7 +640,8 @@ function App() {
             ) : (
               <div style={S.grid}>
                 {fleet.map(truck=>{
-                  const info = ENGINE_DB[truck.maker].engines[truck.engine];
+                  const info = ENGINE_DB[truck.maker]?.engines[truck.engine];
+                  if (!info) return null;
                   const last = latestRecord(truck);
                   const c = ENGINE_DB[truck.maker].color;
                   return (
@@ -280,9 +655,19 @@ function App() {
                       </div>
                       <div style={S.tBody}>
                         <div style={S.tInfo}><span style={S.tIL}>エンジン</span><span style={S.tIV}>{truck.engine}</span></div>
-                        <div style={S.tInfo}><span style={S.tIL}>オイル量</span><span style={{...S.tIV,color:c,fontWeight:700}}>{(info.oilL+info.filterL).toFixed(1)} L</span></div>
+                        <div style={S.tInfo}><span style={S.tIL}>オイル量</span><span style={{...S.tIV,color:c}}>{(info.oilL+info.filterL).toFixed(1)} L（E同時）</span></div>
                         <div style={S.tInfo}><span style={S.tIL}>グレード</span><span style={S.tIV}>{info.oilGrade}</span></div>
-                        {last && <div style={S.lastRec}>📅 前回: {last.date}{last.mileage && `　${parseInt(last.mileage).toLocaleString()} km`}</div>}
+                        <div style={S.tElm}>
+                          🔧 {info.elementType}　
+                          {(info.elementNo.includes("要確認") || info.elementNo.includes("推定")) && <span style={S.unconfirmedBadge}>🔴 要確認</span>}
+                          {" "}{info.elementNo.replace("（要確認）","").replace("（要確認：","(").replace("）",")")}
+                        </div>
+                        {last && (
+                          <div style={S.lastRec}>
+                            📅 前回: {last.date}　{last.oil}L{last.withFilter?" (E交換)":""}
+                            {last.mileage && `　${parseInt(last.mileage).toLocaleString()} km`}
+                          </div>
+                        )}
                         <div style={S.actions}>
                           <button style={S.actBtn(c)} onClick={()=>{setRecordTarget(truck);setRecWithFilter(true);}}>交換記録</button>
                           <button style={S.delBtn} onClick={()=>deleteTruck(truck.vin)}>削除</button>
@@ -291,13 +676,18 @@ function App() {
                           <details style={S.histW}>
                             <summary style={S.histS}>交換履歴 ({truck.records.length}回)</summary>
                             <table style={S.tbl}>
-                              <thead><tr><th style={S.th}>日付</th><th style={S.th}>走行距離</th><th style={S.th}>油量</th><th style={S.th}>備考</th></tr></thead>
+                              <thead><tr>
+                                <th style={S.th}>日付</th>
+                                <th style={S.th}>走行距離</th>
+                                <th style={S.th}>油量</th>
+                                <th style={S.th}>備考</th>
+                              </tr></thead>
                               <tbody>
                                 {[...truck.records].reverse().map((r,i)=>(
                                   <tr key={i} style={i%2===0?{background:"#fafafa"}:{}}>
                                     <td style={S.td}>{r.date}</td>
                                     <td style={S.td}>{r.mileage?`${parseInt(r.mileage).toLocaleString()} km`:"-"}</td>
-                                    <td style={S.td}>{r.oil} L</td>
+                                    <td style={S.td}>{r.oil} L{r.withFilter?" ✓E":""}</td>
                                     <td style={S.td}>{r.note||"-"}</td>
                                   </tr>
                                 ))}
@@ -376,7 +766,7 @@ function App() {
             </div>
             <label style={S.chkRow}>
               <input type="checkbox" checked={recWithFilter} onChange={e=>setRecWithFilter(e.target.checked)} style={{width:17,height:17}}/>
-              オイルフィルター同時交換
+              オイルエレメント同時交換
             </label>
             <div style={S.field}>
               <label style={S.label}>備考</label>
@@ -385,10 +775,18 @@ function App() {
             {(() => {
               const info = ENGINE_DB[recordTarget.maker].engines[recordTarget.engine];
               const oil = (info.oilL + (recWithFilter ? info.filterL : 0)).toFixed(1);
+              const c = ENGINE_DB[recordTarget.maker].color;
               return (
-                <div style={S.totBox(ENGINE_DB[recordTarget.maker].color)}>
-                  <span style={S.totLbl}>交換オイル量</span>
-                  <span style={S.totNum}>{oil} L</span>
+                <div>
+                  <div style={S.totBox(c)}>
+                    <span style={S.totLbl}>交換オイル量</span>
+                    <span style={S.totNum}>{oil} L</span>
+                  </div>
+                  {recWithFilter && (
+                    <div style={{marginTop:8, fontSize:12, color:"#666"}}>
+                      エレメント: {info.elementType}　{info.elementNo}
+                    </div>
+                  )}
                 </div>
               );
             })()}

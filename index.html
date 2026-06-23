@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>オイル管理システム v1.2</title>
+<title>オイル管理システム v1.4</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
@@ -20,11 +20,13 @@
 // ============================================================
 // ENGINE DATABASE（修正・精査版 2025-v2 → UI改善版 v1.3）
 // v1.2: 要確認バッジ・油量範囲表示・GH8品番整理・GH8オイル量修正
-// v1.3 調査修正内容：
-//   [いすゞ] 4JJ1 oilL 9.5→9.6L（整備事例実測値に修正）
-//   [いすゞ] 6UZ1 oilLMax=34.0追加（実測32〜34L範囲表示に変更）
-//   [日野] N04C oilL 7.0→6.5L（XZU系）/ oilLMax=8.5（XZB系）に修正
-//   [UD] GH11 oilGrade更新（2022年〜VDS-5 5W-30に変更）・note更新
+// v1.3 調査修正内容（前回）：
+//   [いすゞ] 4JJ1/6UZ1/N04C/GH11 修正
+// v1.4 再調査修正内容：
+//   [UD] GH11 oilL 27→35L、filterL 2.5→3.0L（オイルのみ35L、フィルター同時38L確認）
+//   [日野] J07E oilL 16→13L（複数整備事例・専門サイトで13L確認）
+//   [ふそう] 6S10 oilL 20→35L（整備事例で35L確認）
+//   [ふそう] 6R20 oilL 28→35L（整備事例「説明書通り38L」確認・note更新）
 // ============================================================
 const ENGINE_DB = {
   isuzu: {
@@ -137,11 +139,11 @@ const ENGINE_DB = {
       },
       "J07E": {
         name: "J07E（レンジャー大型/コンドル）",
-        oilL: 16.0, oilGrade: "10W-30 DH-2", filterL: 1.0,
+        oilL: 13.0, oilGrade: "10W-30 DH-2", filterL: 1.0,
         elementType: "スピンオン式",
         elementNo: "15607-2190",
         altElement: "FESCO HNO-11",
-        note: "レンジャー大型・UDコンドル旧型にも搭載。7Lクラスエンジン。必ずゲージで確認。"
+        note: "レンジャー大型（GD系8t）・UDコンドル旧型にも搭載。6.4L直6エンジン。複数整備事例・専門サイトで13L確認。エレメント同時で約14L。必ずゲージで確認。"
       },
       "A09C": {
         name: "A09C（プロフィア）",
@@ -210,11 +212,11 @@ const ENGINE_DB = {
       },
       "GH11": {
         name: "GH11（クオン11L単車/トラクタ）",
-        oilL: 27.0, oilGrade: "VDS-5 5W-30（2022年〜）/ VDS-4 10W-30（〜2021年）", filterL: 2.5,
+        oilL: 35.0, oilGrade: "VDS-5 5W-30（2022年〜）/ VDS-4 10W-30（〜2021年）", filterL: 3.0,
         elementType: "スピンオン式",
         elementNo: "15200-9Z00A / 15200-9Z00B（要確認）",
         altElement: "要確認",
-        note: "現行クオン主力エンジン。排気量10.8L直6。ベースはボルボD11C型。2022年モデルよりVDS-5 5W-30に変更（低粘度化）。旧モデルはVDS-4 10W-30。実測26〜28L。エレメント同時交換で2〜3L増。必ずゲージ確認。"
+        note: "現行クオン主力エンジン。排気量10.8L直6。ベースはボルボD11C型。2022年モデルよりVDS-5 5W-30に変更（低粘度化）。旧モデルはVDS-4 10W-30。オイルのみ約35L、フィルター同時交換で約38L。必ずゲージ確認。"
       },
       "GH13": {
         name: "GH13（クオントラクタ12.8L）",
@@ -338,19 +340,19 @@ const ENGINE_DB = {
       },
       "6S10": {
         name: "6S10（スーパーグレート）",
-        oilL: 20.0, oilGrade: "10W-30 DH-2", filterL: 2.0,
+        oilL: 35.0, oilGrade: "10W-30 DH-2", filterL: 2.0,
         elementType: "スピンオン式",
         elementNo: "ME230256",
         altElement: "要確認",
-        note: "7.7L直6。スーパーグレート現行。アシンメトリックターボ搭載。実測19〜21L。"
+        note: "7.7L直6。スーパーグレート現行（2017年〜）。アシンメトリックターボ搭載。整備事例で35L確認。エレメント同時で約37L。必ずゲージで確認。"
       },
       "6R20": {
         name: "6R20（スーパーグレート大型）",
-        oilL: 28.0, oilGrade: "10W-30 DH-2", filterL: 3.0,
+        oilL: 35.0, oilGrade: "10W-30 DH-2", filterL: 3.0,
         elementType: "スピンオン式×2個",
         elementNo: "MZ690248（要確認）",
         altElement: "要確認",
-        note: "10.7L直6。スーパーグレート旧型大型。エレメント2個の場合あり。filterLは2個分合計。"
+        note: "10.7L直6。スーパーグレート（2017〜2023年）。整備事例で「説明書通り38L」確認。エレメント2個付き。filterLは2個分合計。レベルゲージなし車種多数→モニター画面で確認。"
       },
       "6R30": {
         name: "6R30（スーパーグレート新型）",

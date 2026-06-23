@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>オイル管理システム v1.5</title>
+<title>オイル管理システム v1.6</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
@@ -34,6 +34,13 @@
 //   [ふそう] 6S10 oilL構造確認・noteにパンのみ/フィルター同時の内訳を明記
 //   [ふそう] 6R20 構造確認・noteにパンのみ/フィルター同時の内訳を明記
 //   [UD旧型] MD92/PF6/PE6 elementNo候補を追記
+// v1.6 データ収集・精査：
+//   [UD] GH8 elementNo修正（S4430-81380はGH11用→GH8専用品番52234-76572/52239-58455に修正）
+//   [UD] GH11 elementNo確定（S4430-81380/Φ91mm×H143mm）・整備事例オイル量を追記
+//   [UD旧型] MD92 elementNo修正（15274-NY01J/FESCO UE-18、コンドル系はMO-8）
+//   [UD旧型] PF6 name/elementNo修正（ビッグサム搭載→15274-NY029/FESCO UE-17）
+//   [UD旧型] PE6 elementNo・altElement修正（MO-8適合表記載なし・要現車確認に変更）
+//   [UD旧型] FE6 elementNo確定（ME130968/FESCO MO-8）・note更新
 // ============================================================
 const ENGINE_DB = {
   isuzu: {
@@ -213,18 +220,17 @@ const ENGINE_DB = {
         oilL: 28.0, oilLMax: 30.0, oilGrade: "VDS-4 / DH-2 5W-30（UD純正メガオイル推奨）", filterL: 5.0,
         needsConfirm: true,
         elementType: "スピンオン式×3本",
-        elementNo: "S4430-81380",
-        elementNoAlt: "15200-9Z00A / 15200-9Z00B（候補品番・要確認）",
-        altElement: "52234-76572（要確認）",
-        note: "2019年〜現行クオン単車系。排気量7.7L直6。VDS-4規格（DH-2相当）必須。オイルパンのみ約28L（oilL）、フィルター3本同時交換の追加分約5L（filterL）、合計約33〜35L。車両仕様・架装により差あり。必ずゲージ（HOT範囲）またはレベルプラグで確認。GH11（27L）と混同注意。oilLは推定値・要実測確認。"
+        elementNo: "52234-76572 / 52239-58455（GH8-TA用・要確認）",
+        altElement: "要確認",
+        note: "2019年〜現行クオン単車系。排気量7.7L直6。VDS-4規格（DH-2相当）必須。オイルパンのみ約28L（oilL推定値）、フィルター3本同時交換の追加分約5L（filterL）、合計約33〜35L。フィルターはGH11用S4430-81380（Φ91mm）と別品番（Φ110mm×H199.5mm×3本）。GH11（27L）と混同注意。必ずゲージ（HOT範囲）またはレベルプラグで確認。oilLは要実測確認。"
       },
       "GH11": {
         name: "GH11（クオン11L単車/トラクタ）",
         oilL: 27.0, oilLMax: 29.0, oilGrade: "VDS-5 5W-30（2022年〜）/ VDS-4 10W-30（〜2021年）", filterL: 6.0,
         elementType: "スピンオン式",
-        elementNo: "15200-9Z00A / 15200-9Z00B（要確認）",
-        altElement: "要確認",
-        note: "現行クオン主力エンジン。排気量10.8L直6。ベースはボルボD11C型。2022年モデルよりVDS-5 5W-30に変更（低粘度化）。旧モデルはVDS-4 10W-30。オイルパンのみ約27L（oilL）、フィルター同時交換の追加分約6L（filterL）、合計約33〜35L。必ずゲージ確認。"
+        elementNo: "S4430-81380（Φ91mm×H143mm）",
+        altElement: "15200-9Z00A / 15200-9Z00B（要確認）",
+        note: "現行クオン主力エンジン。排気量10.8L直6。ベースはボルボD11C型。2022年モデルよりVDS-5 5W-30に変更（低粘度化）。旧モデルはVDS-4 10W-30。オイルパンのみ約27L（oilL）、フィルター同時交換の追加分約6L（filterL）、合計約33〜35L。整備事例：エレメント同時28L、エレメントなし26〜27L確認。必ずゲージ確認。"
       },
       "GH13": {
         name: "GH13（クオントラクタ12.8L）",
@@ -261,36 +267,36 @@ const ENGINE_DB = {
         note: "UDコンドル小型。三菱ふそうキャンターとはOEM関係なし（車名「カゼット」はUD旧ブランドの別型式）。"
       },
       "MD92": {
-        name: "MD92（旧コンドル中型）",
+        name: "MD92（旧コンドル中型/旧クオン）",
         oilL: 14.0, oilGrade: "10W-30 DH-1", filterL: 1.0,
         elementType: "スピンオン式",
-        elementNo: "15208-9F60A（要確認）",
-        altElement: "FESCO MO-8",
-        note: "旧型コンドル（MK系）。4.6L直4。elementNoは参考値・要現車確認。"
+        elementNo: "15274-NY01J（旧クオン搭載時・FESCO UE-18対応）",
+        altElement: "FESCO MO-8（コンドルMK/LK/PK系・FE6/FU6と共通）",
+        note: "旧型コンドル中型（MK/LK系）および旧クオン（2005〜2010年）搭載。排気量9.2L直6。旧クオンCD/CG/CV/CW/CX型（2005.5〜2010.4）で使用→ elementNoは15274-NY01J（FESCO UE-18）。コンドルMK/LK搭載車はFESCO MO-8（ME130968互換）。搭載車種によりフィルター品番が異なるため現車確認必須。"
       },
       "PF6": {
-        name: "PF6（旧クオン）",
+        name: "PF6（旧ビッグサム大型）",
         oilL: 23.0, oilGrade: "15W-40 DH-1", filterL: 1.5,
         elementType: "スピンオン式",
-        elementNo: "15208-9F60A（要確認・PE6と共通の可能性）",
-        altElement: "FESCO MO-8",
-        note: "旧型大型（クオン前身・ビッグサム系）。6.9L直6。オイルパンのみ約23L、フィルター同時で約24.5L。elementNoはPE6と共通の場合あり・要現車確認。"
+        elementNo: "15274-NY029（ビッグサム搭載時・FESCO UE-17対応）",
+        altElement: "要確認（MO-8はPF6の適合表記載なし）",
+        note: "旧型大型（ビッグサムCD/CG/CV/CX等）搭載。排気量9.2L直6。UD旧社名・日産ディーゼル時代のエンジン。オイルパンのみ約23L、フィルター同時で約24.5L。elementNoはFESCO UE-17（純正品番15274-NY029）対応。現車確認必須。"
       },
       "PE6": {
         name: "PE6（旧コンドル大型）",
         oilL: 16.0, oilGrade: "15W-40 DH-1", filterL: 1.0,
         elementType: "スピンオン式",
-        elementNo: "15208-9F60A（要確認）",
-        altElement: "FESCO MO-8",
-        note: "旧型大型コンドル。6.9L直6。オイルパンのみ約16L、フィルター同時で約17L（実測15〜18L程度）。elementNoはPF6と共通の場合あり・要現車確認。"
+        elementNo: "要確認（PF6と別品番の可能性あり）",
+        altElement: "要確認（FESCO MO-8適合表記載なし）",
+        note: "旧型大型コンドル（PK/PW系）搭載。排気量11.7L直6。P系最大排気量型。オイルパンのみ約16L、フィルター同時で約17L（実測15〜18L程度）。FESCO MO-8の適合表にPE6の記載なし。現車でのelementNo確認必須。"
       },
       "FE6": {
         name: "FE6（旧コンドル中型）",
         oilL: 11.0, oilGrade: "15W-40 DH-1", filterL: 0.8,
         elementType: "スピンオン式",
-        elementNo: "要確認",
-        altElement: "FESCO IO-5 / MO-8",
-        note: "旧型。"
+        elementNo: "ME130968（FESCO MO-8対応）",
+        altElement: "FESCO MO-8（コンドルMK/LK/PK系・FU6と共通）",
+        note: "旧型コンドル中型（MK/LK/PK/PW系）搭載。FESCO MO-8適合確認済み（ME130968互換）。FU6と同フィルター。"
       },
       "RF8": {
         name: "RF8（旧コンドル/旧ビッグサム）",

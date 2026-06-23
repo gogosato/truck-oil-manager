@@ -18,16 +18,13 @@
 <script type="text/babel">
 
 // ============================================================
-// ENGINE DATABASE（修正・精査版 2025-v2 → UI改善版 v1.2）
-// ※オイル量・エレメント交換時追加量・純正品番は整備資料・
-//   メーカー資料・整備事例を参照し修正。
-//   実際の作業前に必ず車両の取扱説明書で確認すること。
-// v1.2 UI改善内容：
-//   [日野] E13C oilLMax=34.0追加 → 合計量表示を範囲表示（28〜35.5L）に変更
-//   [UD] GH8 elementNo候補品番を整理（主品番/候補品番を分離表示）
-//   [ふそう] 6M60・4V20 noteに共通品番である旨を明記
-//   [UI全般] elementNo・altElementに「要確認」含む場合、🔴バッジを表示
-//   [UI全般] 台帳カードのelementNo表示にも🔴バッジを追加
+// ENGINE DATABASE（修正・精査版 2025-v2 → UI改善版 v1.3）
+// v1.2: 要確認バッジ・油量範囲表示・GH8品番整理・GH8オイル量修正
+// v1.3 調査修正内容：
+//   [いすゞ] 4JJ1 oilL 9.5→9.6L（整備事例実測値に修正）
+//   [いすゞ] 6UZ1 oilLMax=34.0追加（実測32〜34L範囲表示に変更）
+//   [日野] N04C oilL 7.0→6.5L（XZU系）/ oilLMax=8.5（XZB系）に修正
+//   [UD] GH11 oilGrade更新（2022年〜VDS-5 5W-30に変更）・note更新
 // ============================================================
 const ENGINE_DB = {
   isuzu: {
@@ -36,7 +33,7 @@ const ENGINE_DB = {
       // 現行・近年型
       "4JJ1": {
         name: "4JJ1（エルフ小型）",
-        oilL: 9.5, oilGrade: "10W-30 または 10W-40 DH-2", filterL: 0.8,
+        oilL: 9.6, oilGrade: "10W-30 または 10W-40 DH-2", filterL: 0.8,
         elementType: "カートリッジ内蔵式（濾紙交換）",
         elementNo: "8-98018-858-0",
         altElement: "FESCO IE-12",
@@ -60,11 +57,11 @@ const ENGINE_DB = {
       },
       "6UZ1": {
         name: "6UZ1（ギガ標準）",
-        oilL: 28.0, oilGrade: "10W-30 DH-2", filterL: 4.0,
+        oilL: 28.0, oilLMax: 34.0, oilGrade: "10W-30 DH-2", filterL: 4.0,
         elementType: "スピンオン式×2個",
         elementNo: "1-13240-079-0 / 1-13240-211-0",
         altElement: "FESCO IE-16",
-        note: "エレメント2個付き。filterLはエレメント2個分の合計。実測：オイルのみ26〜28L、エレメント同時で32〜34L。車型（QKG-CXZ/EXD等）により差あり。必ずゲージ確認。"
+        note: "エレメント2個付き。filterLはエレメント2個分の合計。実測：エレメント同時交換で30〜34L（整備事例より）。oilLのみ交換では26〜28L前後。型式（QKG-CXZ/EXD等）や年式により差あり。必ずゲージ確認。"
       },
       "6WG1": {
         name: "6WG1（ギガ大型/トラクタ）",
@@ -116,11 +113,11 @@ const ENGINE_DB = {
       // 現行・近年型
       "N04C": {
         name: "N04C（デュトロ小型）",
-        oilL: 7.0, oilGrade: "10W-30 DH-2", filterL: 0.8,
+        oilL: 6.5, oilLMax: 8.5, oilGrade: "10W-30 DH-2", filterL: 0.8,
         elementType: "カートリッジ内蔵式（濾紙交換）",
         elementNo: "15607-1690",
         altElement: "FESCO HNO-16",
-        note: "車型（XZU/XZB等）でオイルパン形状が異なり6.5〜8.5Lの差あり。フィルター同時交換時は実測約7.0Lが目安（XZU系）。XZB系はオイルパン容量大のため8.5L前後になる場合あり。DPR装着車はFULLを超えた給油厳禁（日野技術資料より）。必ずゲージ確認。"
+        note: "車型によりオイルパン形状が異なる。XZU系（2t）は6.5L、XZB系（3t・オイルパン大）は8.5L前後。フィルター同時交換時はXZU系7.0L・XZB系9.0L前後が目安。DPR装着車はFULLを超えた給油厳禁（日野技術資料より）。必ずゲージ確認。"
       },
       "J05E": {
         name: "J05E（レンジャー中型）",
@@ -213,11 +210,11 @@ const ENGINE_DB = {
       },
       "GH11": {
         name: "GH11（クオン11L単車/トラクタ）",
-        oilL: 27.0, oilGrade: "VDS-4 / DH-2 10W-30", filterL: 2.5,
+        oilL: 27.0, oilGrade: "VDS-5 5W-30（2022年〜）/ VDS-4 10W-30（〜2021年）", filterL: 2.5,
         elementType: "スピンオン式",
         elementNo: "15200-9Z00A / 15200-9Z00B（要確認）",
         altElement: "要確認",
-        note: "現行クオン主力エンジン。排気量10.8L直6。ベースはボルボD11C型。VDS-4規格必須。実測26〜28L。oilLは標準値27L。エレメント同時交換で2〜3L増。必ずゲージ確認。"
+        note: "現行クオン主力エンジン。排気量10.8L直6。ベースはボルボD11C型。2022年モデルよりVDS-5 5W-30に変更（低粘度化）。旧モデルはVDS-4 10W-30。実測26〜28L。エレメント同時交換で2〜3L増。必ずゲージ確認。"
       },
       "GH13": {
         name: "GH13（クオントラクタ12.8L）",

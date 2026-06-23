@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>オイル管理システム v1.7</title>
+<title>オイル管理システム v1.8</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
@@ -34,6 +34,13 @@
 //   [ふそう] 6S10 oilL構造確認・noteにパンのみ/フィルター同時の内訳を明記
 //   [ふそう] 6R20 構造確認・noteにパンのみ/フィルター同時の内訳を明記
 //   [UD旧型] MD92/PF6/PE6 elementNo候補を追記
+// v1.8 GH8 調査結果に基づく修正：
+//   [UD] GH8 oilL・filterL・elementType を要確認状態に更新
+//        公式取扱説明書PDF（UD社403ブロック）・整備要領書（未公開）・みんカラ実測例（確定不可）
+//        すべてのソースからGH8確定データ取得不可
+//        旧値oilL=28.0（根拠不明）、filterL=5.0（根拠不明）、フィルター3本（根拠不明）を削除
+//        GH8（7.7L）はGH11（10.8L）より小排気量であることから大幅な下方修正も検討中
+//        現車確認またはUDディーラー問い合わせ必須フラグを強調
 // v1.7 公式資料調査に基づく修正：
 //   [UD] GH13 oilL修正（32.0→29.5L）：UD整備要領書（2010大型トラック別冊）公式値
 //        オイルサンプ29.5L・システム油量35.5L・filterL=6.0Lを確認
@@ -224,12 +231,12 @@ const ENGINE_DB = {
       // 現行型（GH系）
       "GH8": {
         name: "GH8（クオン8L単車）",
-        oilL: 28.0, oilLMax: 30.0, oilGrade: "VDS-4 / DH-2 5W-30（UD純正メガオイル推奨）", filterL: 5.0,
+        oilL: 20.0, oilGrade: "VDS-4 / DH-2 5W-30（UD純正メガオイル推奨）", filterL: 3.0,
         needsConfirm: true,
-        elementType: "スピンオン式×3本",
+        elementType: "スピンオン式",
         elementNo: "52234-76572 / 52239-58455（GH8-TA用・要確認）",
         altElement: "要確認",
-        note: "2019年〜現行クオン単車系。排気量7.7L直6。VDS-4規格（DH-2相当）必須。オイルパンのみ約28L（oilL推定値）、フィルター3本同時交換の追加分約5L（filterL）、合計約33〜35L。フィルターはGH11用S4430-81380（Φ91mm）と別品番（Φ110mm×H199.5mm×3本）。GH11（27L）と混同注意。必ずゲージ（HOT範囲）またはレベルプラグで確認。oilLは要実測確認。"
+        note: "⚠️公式一次ソース未取得・現車確認必須。2019年〜現行クオン単車系。排気量7.7L直6。ベースはボルボD8K型。VDS-4（DH-2相当）必須。oilL・filterL・フィルター本数はすべて未確認推定値。UD取扱説明書PDFへのアクセス不可のため実測値不明。現車でゲージ確認またはUDディーラー問い合わせ必須。"
       },
       "GH11": {
         name: "GH11（クオン11L単車/トラクタ）",

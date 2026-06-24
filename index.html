@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>オイル管理システム v2.6</title>
+<title>オイル管理システム v2.7</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
@@ -345,12 +345,20 @@ const ENGINE_DB = {
       },
       // 初代クオン（2004〜2010年 GE系）
       "GE13": {
-        name: "GE13（初代クオン 大型）",
+        name: "GE13（初代クオン 単車）",
         oilL: 33.0, oilGrade: "CF-4 / CE / CD / DH-1（年式による）", filterL: 6.4,
-        elementType: "スピンオン式（標準バイパス仕様：フィルター複数個）",
+        elementType: "スピンオン式（標準バイパス仕様）",
         elementNo: "要確認",
         altElement: "要確認",
-        note: "公式取扱説明書（給油および給脂）確定値。GE13TA・TB・TC型（PTO無）：オイルパン33L／標準バイパス全容量39.4L → filterL=6.4L。大型バイパス仕様は全容量41.4L（filterL=8.4L）。PTO付（TA・TBのみ）はパン36L／全容量42.4L。GE13TD型（PTO無）はパン34L／全容量40.4L。ここではTA/TB/TC型PTO無・標準バイパス仕様を基準値として採用。elementNo未取得。"
+        note: "公式取扱説明書（給油および給脂）確定値。TA・TB・TC型PTO無・標準バイパス仕様：オイルパン33L／全容量39.4L → filterL=6.4L。大型バイパス仕様：全容量41.4L（filterL=8.4L）。TD型PTO無：パン34L／標準バイパス全容量40.4L・大型バイパス全容量42.4L。"
+      },
+      "GE13T": {
+        name: "GE13（初代クオン トラクタ）",
+        oilL: 36.0, oilGrade: "CF-4 / CE / CD / DH-1（年式による）", filterL: 6.4,
+        elementType: "スピンオン式（標準バイパス仕様）",
+        elementNo: "要確認",
+        altElement: "要確認",
+        note: "公式取扱説明書（給油および給脂）確定値。TA・TB型PTO付・標準バイパス仕様：オイルパン36L／全容量42.4L → filterL=6.4L。PTO付はTA・TB型のみ（TC・TD型にPTO付なし）。"
       },
       // 旧型（コンドル・ビッグサム等）
       "4H": {
@@ -362,12 +370,20 @@ const ENGINE_DB = {
         note: "UDコンドル小型。三菱ふそうキャンターとはOEM関係なし（車名「カゼット」はUD旧ブランドの別型式）。"
       },
       "MD92": {
-        name: "MD92（旧コンドル中型/初代クオン 中型）",
+        name: "MD92（初代クオン 単車）",
         oilL: 20.0, oilGrade: "CF-4 / CE / CD / DH-1（年式による）", filterL: 7.0,
         elementType: "スピンオン式",
         elementNo: "15274-NY01J（旧クオン搭載時・FESCO UE-18対応）",
         altElement: "FESCO MO-8（コンドルMK/LK/PK系・FE6/FU6と共通）",
-        note: "公式取扱説明書（給油および給脂）確定値。MD型PTO無：オイルパン20L／全容量27L → filterL=7.0L。PTO付：パン22L／全容量29L。初代クオン（2005〜2010年）搭載時はPTO無仕様が多い。コンドルMK/LK搭載車はFESCO MO-8（ME130968互換）。搭載車種によりフィルター品番が異なるため現車確認必須。"
+        note: "公式取扱説明書（給油および給脂）確定値。MD型PTO無：オイルパン20L／全容量27L → filterL=7.0L。初代クオン（2005〜2010年）搭載。搭載車種によりフィルター品番が異なるため現車確認必須。"
+      },
+      "MD92T": {
+        name: "MD92（初代クオン トラクタ）",
+        oilL: 22.0, oilGrade: "CF-4 / CE / CD / DH-1（年式による）", filterL: 7.0,
+        elementType: "スピンオン式",
+        elementNo: "15274-NY01J（旧クオン搭載時・FESCO UE-18対応）",
+        altElement: "FESCO MO-8（コンドルMK/LK/PK系・FE6/FU6と共通）",
+        note: "公式取扱説明書（給油および給脂）確定値。MD型PTO付：オイルパン22L／全容量29L → filterL=7.0L。初代クオン トラクタ（2005〜2010年）搭載。搭載車種によりフィルター品番が異なるため現車確認必須。"
       },
       "PF6": {
         name: "PF6（旧ビッグサム大型）",

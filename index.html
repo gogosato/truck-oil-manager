@@ -3,10 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>オイル管理システム v2.5</title>
+<title>オイル管理システム v2.6</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+  const firebaseConfig = {
+    apiKey: "AIzaSyDzgL4GFqGE1GTSJwlLosHTJebiXi3hJ-w",
+    authDomain: "truck-oil-manager.firebaseapp.com",
+    databaseURL: "https://truck-oil-manager-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "truck-oil-manager",
+    storageBucket: "truck-oil-manager.firebasestorage.app",
+    messagingSenderId: "179762257318",
+    appId: "1:179762257318:web:31f227848360e53dda8367"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  window.__firebase = { db, ref, push, onValue, remove };
+</script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #f4f5f7; font-family: 'Hiragino Sans', 'Meiryo', sans-serif; }
@@ -491,6 +507,64 @@ function App() {
   const [recWithFilter, setRecWithFilter] = React.useState(true);
 
   const engineInfo = maker && engine ? ENGINE_DB[maker].engines[engine] : null;
+
+  // ── 掲示板 ──
+  const [posts, setPosts] = React.useState([]);
+  const [boardName, setBoardName] = React.useState("");
+  const [boardEngine, setBoardEngine] = React.useState("");
+  const [boardText, setBoardText] = React.useState("");
+  const [boardPosting, setBoardPosting] = React.useState(false);
+  const [myPostIds, setMyPostIds] = React.useState(() => {
+    try { return JSON.parse(localStorage.getItem("myPostIds") || "[]"); } catch { return []; }
+  });
+
+  React.useEffect(() => {
+    if (tab !== "board") return;
+    const { db, ref, onValue } = window.__firebase || {};
+    if (!db) return;
+    const postsRef = ref(db, "posts");
+    const unsub = onValue(postsRef, snap => {
+      const val = snap.val();
+      if (!val) { setPosts([]); return; }
+      const arr = Object.entries(val)
+        .map(([id, v]) => ({ id, ...v }))
+        .sort((a, b) => b.ts - a.ts);
+      setPosts(arr);
+    });
+    return () => unsub();
+  }, [tab]);
+
+  async function submitPost() {
+    if (!boardText.trim()) return;
+    const { db, ref, push } = window.__firebase || {};
+    if (!db) return;
+    setBoardPosting(true);
+    try {
+      const r = await push(ref(db, "posts"), {
+        name: boardName.trim() || "名無し",
+        engine: boardEngine,
+        text: boardText.trim(),
+        ts: Date.now()
+      });
+      const newIds = [...myPostIds, r.key];
+      setMyPostIds(newIds);
+      localStorage.setItem("myPostIds", JSON.stringify(newIds));
+      setBoardText("");
+    } catch(e) { alert("投稿に失敗しました: " + e.message); }
+    setBoardPosting(false);
+  }
+
+  async function deletePost(id) {
+    if (!window.confirm("この投稿を削除しますか？")) return;
+    const { db, ref, remove } = window.__firebase || {};
+    if (!db) return;
+    try {
+      await remove(ref(db, "posts/" + id));
+      const newIds = myPostIds.filter(x => x !== id);
+      setMyPostIds(newIds);
+      localStorage.setItem("myPostIds", JSON.stringify(newIds));
+    } catch(e) { alert("削除に失敗しました: " + e.message); }
+  }
   const totalOil = engineInfo ? (engineInfo.oilL + (withFilter ? engineInfo.filterL : 0)).toFixed(1) : null;
   const totalOilMax = engineInfo && engineInfo.oilLMax ? (engineInfo.oilLMax + (withFilter ? engineInfo.filterL : 0)).toFixed(1) : null;
   const mc = maker ? ENGINE_DB[maker].color : "#333";
@@ -609,7 +683,7 @@ function App() {
             </div>
           </div>
           <nav style={S.nav}>
-            {[["lookup","🔍 検索"],["fleet","📋 台帳"]].map(([k,v])=>(
+            {[["lookup","🔍 検索"],["fleet","📋 台帳"],["board","💬 掲示板"]].map(([k,v])=>(
               <button key={k} style={{...S.navBtn,...(tab===k?S.navAct:{})}} onClick={()=>setTab(k)}>{v}</button>
             ))}
           </nav>
@@ -894,6 +968,74 @@ function App() {
           </div>
         </div>
       )}
+
+      {tab === "board" && (
+        <div style={S.card}>
+          <div style={S.title}>💬 掲示板</div>
+          <p style={{fontSize:13,color:"#666",marginBottom:16}}>整備メモ・気づき・情報共有など自由にどうぞ。リンクを知っている人全員が閲覧・投稿できます。</p>
+
+          {/* 投稿フォーム */}
+          <div style={{background:"#f8f8f8",borderRadius:10,padding:16,marginBottom:20}}>
+            <div style={{display:"flex",gap:8,marginBottom:8,flexWrap:"wrap"}}>
+              <input
+                placeholder="ニックネーム（省略可）"
+                value={boardName}
+                onChange={e=>setBoardName(e.target.value)}
+                style={{flex:1,minWidth:120,padding:"8px 10px",borderRadius:6,border:"1px solid #ddd",fontSize:13}}
+              />
+              <select
+                value={boardEngine}
+                onChange={e=>setBoardEngine(e.target.value)}
+                style={{flex:1,minWidth:140,padding:"8px 10px",borderRadius:6,border:"1px solid #ddd",fontSize:13,background:"#fff"}}
+              >
+                <option value="">エンジン（省略可）</option>
+                {Object.entries(ENGINE_DB).map(([mk,mv])=>
+                  Object.entries(mv.engines).map(([ek,ev])=>(
+                    <option key={mk+ek} value={ev.name}>{ev.name}</option>
+                  ))
+                )}
+              </select>
+            </div>
+            <textarea
+              placeholder="コメントを入力..."
+              value={boardText}
+              onChange={e=>setBoardText(e.target.value)}
+              rows={3}
+              style={{width:"100%",padding:"8px 10px",borderRadius:6,border:"1px solid #ddd",fontSize:13,resize:"vertical",boxSizing:"border-box"}}
+            />
+            <div style={{textAlign:"right",marginTop:8}}>
+              <button
+                onClick={submitPost}
+                disabled={boardPosting||!boardText.trim()}
+                style={{padding:"8px 20px",borderRadius:6,border:"none",background:"#1a73e8",color:"#fff",fontWeight:"bold",fontSize:13,cursor:"pointer",opacity:(boardPosting||!boardText.trim())?0.5:1}}
+              >{boardPosting?"投稿中...":"投稿する"}</button>
+            </div>
+          </div>
+
+          {/* 投稿一覧 */}
+          <div style={{fontWeight:"bold",fontSize:14,marginBottom:12}}>{posts.length}件の投稿</div>
+          {posts.length === 0 ? (
+            <div style={{textAlign:"center",padding:32,color:"#bbb"}}>まだ投稿がありません</div>
+          ) : (
+            posts.map(p=>(
+              <div key={p.id} style={{borderBottom:"1px solid #eee",padding:"12px 4px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+                  <div>
+                    <span style={{fontWeight:"bold",fontSize:13}}>{p.name}</span>
+                    {p.engine && <span style={{marginLeft:8,fontSize:11,background:"#e8f0fe",color:"#1a73e8",padding:"2px 7px",borderRadius:10}}>{p.engine}</span>}
+                    <span style={{marginLeft:8,fontSize:11,color:"#aaa"}}>{new Date(p.ts).toLocaleString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}</span>
+                  </div>
+                  {myPostIds.includes(p.id) && (
+                    <button onClick={()=>deletePost(p.id)} style={{fontSize:11,padding:"2px 8px",borderRadius:5,border:"1px solid #ffcdd2",background:"#fff5f5",color:"#c62828",cursor:"pointer"}}>削除</button>
+                  )}
+                </div>
+                <div style={{fontSize:13,color:"#333",whiteSpace:"pre-wrap",lineHeight:1.6}}>{p.text}</div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
     </div>
   );
 }

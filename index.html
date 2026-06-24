@@ -781,8 +781,8 @@ function App() {
 
             {engineInfo && (
               <div>
-                <label style={{...S.chkRow, marginBottom:0}} onClick={()=>setWithFilter(!withFilter)}>
-                  <input type="checkbox" checked={withFilter} onChange={()=>{}} style={{width:17,height:17,pointerEvents:"none"}}/>
+                <label style={{...S.chkRow, marginBottom:0}}>
+                  <input type="checkbox" checked={withFilter} onChange={e=>setWithFilter(e.target.checked)} style={{width:17,height:17}}/>
                   オイルエレメント同時交換
                 </label>
 

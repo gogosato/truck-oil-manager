@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>オイル管理システム v2.8</title>
+<title>オイル管理システム v2.9</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
@@ -332,8 +332,8 @@ const ENGINE_DB = {
         note: "UD公式取扱説明書（給油および給脂14-4）確定値：オイルパン容量27L／全容量28.5L。filterL=1.5L（全容量28.5L−パン27L）。GH11もオイルパンは同じ27Lだが全容量が異なる（GH11=33L）。フィルターはGH11用S4430-81380（Φ91mm）と別品番。VDS-4（DH-2相当）必須。"
       },
       "GH11": {
-        name: "GH11（クオン11L単車/トラクタ）",
-        years: "2017年～現行",
+        name: "GH11（クオン11L 単車・初代〜現行）",
+        years: "2010年～現行",
         oilL: 27.0, oilGrade: "VDS-5 5W-30（2022年〜）/ VDS-4 10W-30（〜2021年）", filterL: 6.0,
         elementType: "スピンオン式×3個（フルフロー×2個＋バイパス×1個）",
         elementNo: "フルフロー×2：52211-70569　バイパス×1：52211-70573",
@@ -341,8 +341,8 @@ const ENGINE_DB = {
         note: "公式取扱説明書（給油および給脂14-4）および整備要領書（2010大型トラック別冊）の両方で確認。オイルパン容量27L／全容量33L。filterL=6.0L。フィルターは3個使用：フルフロー用52211-70569（最新品番）×2個＋バイパス用52211-70573（最新品番）×1個。2022年モデルよりVDS-5 5W-30に変更（低粘度化）。旧モデルはVDS-4 10W-30。"
       },
       "GH13": {
-        name: "GH13（クオントラクタ12.8L）",
-        years: "2017年～現行",
+        name: "GH13（クオン12.8L トラクタ・初代〜現行）",
+        years: "2010年～現行",
         oilL: 29.5, oilGrade: "VDS-4 / DH-2 10W-30", filterL: 6.0,
         elementType: "スピンオン式×3個（フルフロー×2個＋バイパス×1個）",
         elementNo: "フルフロー×2：52211-70569　バイパス×1：52211-70573",

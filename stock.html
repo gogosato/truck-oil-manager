@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI株式ポートフォリオ</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0d1117; font-family: 'Hiragino Sans', 'Meiryo', 'Yu Gothic', sans-serif; color: #e6edf3; }
+  input, select, button { font-family: inherit; }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: #161b22; }
+  ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+// ═══════════════════════════════════════════════════════
+//  AI株式ポートフォリオ — シミュレーション版
+//  ※ 価格はデモ用シミュレーションです（実際の市場価格ではありません）
+// ═══════════════════════════════════════════════════════
+
+const USD_JPY = 157.50;       // 現在の参考為替レート
+const USD_JPY_HIST = 150.00;  // 購入時の参考為替レート
+
+// AI が選んだ 8 銘柄（配分合計 100%）
+const STOCKS = [
+  {
+    symbol: 'NVDA', name: 'エヌビディア', nameEn: 'NVIDIA Corp.',
+    sector: 'AI半導体', flag: '🇺🇸', currency: 'USD', icon: '🎯',
+    allocation: 20, basePrice: 135.50, purchasePrice: 93.45,
+    risk: '高', riskColor: '#ef4444', aiScore: 95,
+    reason: 'データセンター向け GPU の世界シェア約80%を独占。生成 AI ブームで需要が爆発的に拡大し、売上高が数年で10倍以上に成長。今後もクラウド・AI インフラ投資の増加が見込まれ、最も恩恵を受ける銘柄のひとつ。長期保有に向いています。'
+  },
+  {
+    symbol: 'AAPL', name: 'アップル', nameEn: 'Apple Inc.',
+    sector: 'テクノロジー', flag: '🇺🇸', currency: 'USD', icon: '📱',
+    allocation: 18, basePrice: 210.30, purchasePrice: 185.22,
+    risk: '中', riskColor: '#f59e0b', aiScore: 88,
+    reason: 'iPhone を中心とした強固なエコシステムで世界30億台のデバイスを管理。Apple Intelligence（AI 機能）搭載による買い替え需要と、App Store・iCloud などサービス収益の高成長が継続。安定した自社株買いと増配も魅力で、初心者にも安心な銘柄。'
+  },
+  {
+    symbol: 'MSFT', name: 'マイクロソフト', nameEn: 'Microsoft Corp.',
+    sector: 'クラウド/AI', flag: '🇺🇸', currency: 'USD', icon: '☁️',
+    allocation: 15, basePrice: 415.20, purchasePrice: 349.80,
+    risk: '中', riskColor: '#f59e0b', aiScore: 91,
+    reason: 'Azure クラウドと Copilot AI で法人市場を席巻。OpenAI への巨額投資で AI 分野でも主導権を握る。Office 365 の安定したサブスクリプション収益が底堅く、リスクが比較的低い優良成長株。世界最大級の時価総額を誇る安定銘柄です。'
+  },
+  {
+    symbol: '7203.T', name: 'トヨタ自動車', nameEn: 'Toyota Motor Corp.',
+    sector: '自動車/EV', flag: '🇯🇵', currency: 'JPY', icon: '🚗',
+    allocation: 15, basePrice: 3150, purchasePrice: 2917,
+    risk: '中', riskColor: '#f59e0b', aiScore: 82,
+    reason: '世界販売台数 No.1。ハイブリッド車の圧倒的な強みに加え、全固体電池 EV を2027年量産目標。円安が輸出収益を押し上げ、安定した高配当も魅力。日本を代表する超大型優良株で、長期保有の安心感があります。'
+  },
+  {
+    symbol: '6758.T', name: 'ソニーグループ', nameEn: 'Sony Group Corp.',
+    sector: 'エンタメ/技術', flag: '🇯🇵', currency: 'JPY', icon: '🎮',
+    allocation: 12, basePrice: 3350, purchasePrice: 3190,
+    risk: '中', riskColor: '#f59e0b', aiScore: 79,
+    reason: 'PlayStation・音楽・映画・CMOS イメージセンサーの4本柱で安定収益。スマートフォンカメラ用センサーの世界シェアは約50%。エンタメとテクノロジーを融合した独自のビジネスモデルが強み。多角化経営でリスク分散が図られています。'
+  },
+  {
+    symbol: 'AMZN', name: 'アマゾン', nameEn: 'Amazon.com Inc.',
+    sector: 'EC/クラウド', flag: '🇺🇸', currency: 'USD', icon: '📦',
+    allocation: 10, basePrice: 205.80, purchasePrice: 168.69,
+    risk: '中', riskColor: '#f59e0b', aiScore: 85,
+    reason: 'AWS（クラウド）は業界トップシェアで安定高成長。EC 部門も広告収入が急拡大。Prime 会員の強力なエコシステムでリピート消費を確保。物流自動化・AI 投資で長期競争力を強化中で、幅広い事業基盤が魅力の銘柄です。'
+  },
+  {
+    symbol: '9984.T', name: 'ソフトバンクG', nameEn: 'SoftBank Group Corp.',
+    sector: 'テクノロジー投資', flag: '🇯🇵', currency: 'JPY', icon: '🏢',
+    allocation: 5, basePrice: 12500, purchasePrice: 9259,
+    risk: '高', riskColor: '#ef4444', aiScore: 76,
+    reason: 'ARM ホールディングスの筆頭株主として、AI 半導体設計の知的財産から莫大なロイヤリティを享受。ビジョンファンドを通じた AI スタートアップ投資でハイリターンを狙う。価格変動が大きいハイリスク・ハイリターン銘柄です。'
+  },
+  {
+    symbol: '9433.T', name: 'KDDI', nameEn: 'KDDI Corp.',
+    sector: '通信', flag: '🇯🇵', currency: 'JPY', icon: '📡',
+    allocation: 5, basePrice: 4850, purchasePrice: 4709,
+    risk: '低', riskColor: '#22c55e', aiScore: 72,
+    reason: '安定した通信収益で毎年増配を実施。景気に左右されにくいディフェンシブ銘柄として、ポートフォリオのリスクを下げる役割を担います。配当利回り約3%で、じっくり積み上げる守りの一手として選定しました。'
+  },
+];
+
+const STORAGE_KEY = 'ai_stock_portfolio_v2';
+
+function loadConfig() {
+  try {
+    const r = localStorage.getItem(STORAGE_KEY);
+    return r ? JSON.parse(r) : { investmentJPY: 1000000 };
+  } catch { return { investmentJPY: 1000000 }; }
+}
+function saveConfig(c) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(c)); } catch {} }
+
+// 初期シミュレーション価格を生成
+function initPrices() {
+  const prices = {};
+  STOCKS.forEach(s => {
+    const dayVar = (Math.random() - 0.45) * 0.04;
+    const current = s.basePrice * (1 + dayVar);
+    const yestVar = (Math.random() - 0.45) * 0.025;
+    const yesterday = s.basePrice * (1 + yestVar);
+    prices[s.symbol] = { current, yesterday };
+  });
+  return prices;
+}
+
+// ランダムウォークで価格を更新
+function tickPrices(prev) {
+  const next = {};
+  STOCKS.forEach(s => {
+    const prevPrice = prev[s.symbol]?.current ?? s.basePrice;
+    const change = (Math.random() - 0.49) * 0.006;
+    next[s.symbol] = {
+      current: prevPrice * (1 + change),
+      yesterday: prev[s.symbol]?.yesterday ?? s.basePrice,
+    };
+  });
+  return next;
+}
+
+// ──────────────────────── フォーマット関数 ────────────────────────
+function fmtJPY(n) {
+  const abs = Math.abs(n);
+  if (abs >= 100000000) return `${(n / 100000000).toFixed(2)}億円`;
+  if (abs >= 10000)     return `${(n / 10000).toFixed(1)}万円`;
+  return `${Math.round(n).toLocaleString('ja-JP')}円`;
+}
+function fmtSign(n) { return (n >= 0 ? '+' : '') + fmtJPY(n); }
+function fmtPct(n)  { return (n >= 0 ? '+' : '') + n.toFixed(2) + '%'; }
+
+// ──────────────────────── ポートフォリオ計算 ────────────────────────
+function calcMetrics(stocks, prices, totalInvested) {
+  let totalCurrentJPY = 0;
+  let totalDailyPnlJPY = 0;
+
+  const metrics = stocks.map(s => {
+    const price = prices[s.symbol];
+    const currentRaw = price?.current ?? s.basePrice;
+    const yesterdayRaw = price?.yesterday ?? s.basePrice;
+
+    const toJPY = (p, hist = false) => s.currency === 'USD' ? p * (hist ? USD_JPY_HIST : USD_JPY) : p;
+
+    const purchasePriceJPY = toJPY(s.purchasePrice, true);
+    const currentPriceJPY  = toJPY(currentRaw);
+    const yesterdayPriceJPY = toJPY(yesterdayRaw);
+
+    const allocated = totalInvested * (s.allocation / 100);
+    const shares = allocated / purchasePriceJPY;
+    const currentValue = shares * currentPriceJPY;
+    const pnl = currentValue - allocated;
+    const pnlPct = (pnl / allocated) * 100;
+    const dailyChangePct = ((currentPriceJPY - yesterdayPriceJPY) / yesterdayPriceJPY) * 100;
+    const dailyPnl = shares * (currentPriceJPY - yesterdayPriceJPY);
+
+    totalCurrentJPY += currentValue;
+    totalDailyPnlJPY += dailyPnl;
+
+    return { ...s, currentRaw, purchasePriceJPY, currentPriceJPY, allocated, shares, currentValue, pnl, pnlPct, dailyChangePct, dailyPnl };
+  });
+
+  const totalPnl = totalCurrentJPY - totalInvested;
+  const totalPnlPct = (totalPnl / totalInvested) * 100;
+  const dailyPct = (totalDailyPnlJPY / totalCurrentJPY) * 100;
+
+  return { metrics, totalCurrentJPY, totalPnl, totalPnlPct, totalDailyPnlJPY, dailyPct };
+}
+
+// ══════════════════════════════════════════════════════════
+//  メインアプリ
+// ══════════════════════════════════════════════════════════
+function App() {
+  const [tab, setTab]               = React.useState('dashboard');
+  const [config, setConfig]         = React.useState(loadConfig);
+  const [prices, setPrices]         = React.useState(initPrices);
+  const [lastUpdate, setLastUpdate] = React.useState(new Date());
+  const [showModal, setShowModal]   = React.useState(false);
+  const [investInput, setInvestInput] = React.useState('');
+  const [expandedAI, setExpandedAI] = React.useState(null);
+
+  // 30秒ごとに価格更新
+  React.useEffect(() => {
+    const id = setInterval(() => {
+      setPrices(prev => tickPrices(prev));
+      setLastUpdate(new Date());
+    }, 30000);
+    return () => clearInterval(id);
+  }, []);
+
+  const { metrics, totalCurrentJPY, totalPnl, totalPnlPct, totalDailyPnlJPY, dailyPct } =
+    calcMetrics(STOCKS, prices, config.investmentJPY);
+
+  const G = '#22c55e';  // 利益色
+  const R = '#ef4444';  // 損失色
+  const GOLD = '#f0b429';
+
+  const pnlColor  = totalPnl >= 0 ? G : R;
+  const dailyColor = totalDailyPnlJPY >= 0 ? G : R;
+
+  // ─── スタイル定数 ───
+  const S = {
+    root:    { minHeight: '100vh', background: '#0d1117' },
+    header:  { background: '#161b22', borderBottom: '1px solid #21262d', padding: '0 16px', position: 'sticky', top: 0, zIndex: 100 },
+    hInner:  { maxWidth: 1000, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 58 },
+    logo:    { display: 'flex', alignItems: 'center', gap: 10 },
+    logoT:   { color: GOLD, fontWeight: 800, fontSize: 17, letterSpacing: 0.5 },
+    logoS:   { color: '#8b949e', fontSize: 10, letterSpacing: 2 },
+    nav:     { display: 'flex', gap: 4 },
+    navBtn:  { background: 'transparent', color: '#8b949e', border: 'none', padding: '7px 14px', borderRadius: 7, cursor: 'pointer', fontSize: 13, fontWeight: 500 },
+    navAct:  { background: '#21262d', color: GOLD, fontWeight: 700 },
+    ticker:  { background: '#0d1117', borderBottom: '1px solid #21262d', padding: '6px 16px', display: 'flex', justifyContent: 'center', gap: 20, fontSize: 11, color: '#8b949e', flexWrap: 'wrap' },
+    main:    { maxWidth: 1000, margin: '20px auto', padding: '0 14px' },
+    card:    { background: '#161b22', border: '1px solid #21262d', borderRadius: 14, padding: 20, marginBottom: 16 },
+    cardTitle: { fontWeight: 700, fontSize: 15, color: '#e6edf3', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 },
+
+    // サマリーグリッド
+    sumGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 20 },
+    sumCard: (border) => ({ background: '#161b22', border: `1px solid ${border}44`, borderRadius: 12, padding: 18, textAlign: 'center' }),
+    sumLabel: { color: '#8b949e', fontSize: 12, marginBottom: 8, fontWeight: 500 },
+    sumValue: (c) => ({ color: c, fontSize: 26, fontWeight: 800, lineHeight: 1 }),
+    sumSub:   (c) => ({ color: c, fontSize: 13, marginTop: 6, fontWeight: 600 }),
+
+    // 配分バー
+    allocRow: { marginBottom: 12 },
+    allocHd:  { display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 5 },
+    allocBar: { background: '#21262d', borderRadius: 4, height: 8, overflow: 'hidden' },
+    allocFill:(w, c) => ({ background: c, height: '100%', width: `${w}%`, borderRadius: 4, transition: 'width 0.8s ease' }),
+
+    // 銘柄カード
+    sGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: 14 },
+    sCard: (pnl) => ({
+      background: '#161b22',
+      border: `1px solid ${pnl >= 0 ? '#22c55e' : '#ef4444'}33`,
+      borderRadius: 14, padding: 18,
+    }),
+    sHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
+    sName: { fontWeight: 800, fontSize: 15 },
+    sSym:  { color: '#8b949e', fontSize: 11, marginTop: 3 },
+    sPrice:{ fontSize: 24, fontWeight: 800, marginBottom: 4 },
+    sSub:  { color: '#8b949e', fontSize: 11, marginBottom: 12 },
+    sDivider: { borderTop: '1px solid #21262d', paddingTop: 12, marginTop: 4 },
+    sRow:  { display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 6 },
+    sLbl:  { color: '#8b949e' },
+    sPnlRow: { display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: 15, marginTop: 8 },
+
+    // テーブル
+    tbl:   { width: '100%', borderCollapse: 'collapse', fontSize: 13 },
+    th:    { background: '#0d1117', padding: '10px 12px', textAlign: 'left', color: '#8b949e', fontSize: 12, fontWeight: 600, borderBottom: '1px solid #21262d', whiteSpace: 'nowrap' },
+    thR:   { textAlign: 'right' },
+    td:    { padding: '11px 12px', borderBottom: '1px solid #21262d', verticalAlign: 'middle' },
+    tdR:   { textAlign: 'right' },
+
+    // バッジ
+    badge: (bg, c) => ({ display: 'inline-block', background: bg, color: c, borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 700 }),
+    risk:  (c) => ({ display: 'inline-block', background: c + '22', color: c, border: `1px solid ${c}44`, borderRadius: 5, padding: '2px 8px', fontSize: 11, fontWeight: 700 }),
+
+    // スコアバー
+    scoreWrap: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 },
+    scoreBar:  { flex: 1, background: '#21262d', borderRadius: 4, height: 5, overflow: 'hidden' },
+    scoreFill: (n) => ({ height: '100%', width: `${n}%`, borderRadius: 4, background: n >= 88 ? G : n >= 75 ? GOLD : R }),
+
+    // 理由ボックス
+    reasonBox: { background: '#21262d', borderRadius: 8, padding: 14, fontSize: 13, color: '#c9d1d9', lineHeight: 1.75, marginTop: 8 },
+
+    // モーダル
+    overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 16 },
+    modal:   { background: '#161b22', border: '1px solid #30363d', borderRadius: 16, padding: 26, width: '100%', maxWidth: 400 },
+    mTitle:  { fontWeight: 800, fontSize: 17, color: GOLD, marginBottom: 12 },
+    mDesc:   { fontSize: 13, color: '#8b949e', lineHeight: 1.7, marginBottom: 18 },
+    mInput:  { width: '100%', padding: '11px 14px', background: '#21262d', border: '1px solid #30363d', borderRadius: 8, color: '#e6edf3', fontSize: 15 },
+    mBtns:   { display: 'flex', gap: 10, marginTop: 18 },
+    mCancel: { flex: 1, background: '#21262d', color: '#8b949e', border: 'none', borderRadius: 8, padding: '11px 0', fontWeight: 700, cursor: 'pointer' },
+    mSave:   { flex: 2, background: GOLD, color: '#0d1117', border: 'none', borderRadius: 8, padding: '11px 0', fontWeight: 800, cursor: 'pointer' },
+
+    // フッター
+    footer: { background: '#161b22', borderTop: '1px solid #21262d', padding: '14px 16px', textAlign: 'center', fontSize: 11, color: '#8b949e', lineHeight: 1.8 },
+
+    // AI紹介カード
+    aiCard: { background: 'linear-gradient(135deg,#1c2333 0%,#161b22 100%)', border: `1px solid ${GOLD}44`, borderRadius: 14, padding: 20, marginBottom: 16, display: 'flex', gap: 14, alignItems: 'flex-start' },
+    aiTitle: { fontWeight: 800, fontSize: 16, color: GOLD, marginBottom: 6 },
+    aiDesc:  { color: '#8b949e', fontSize: 13, lineHeight: 1.75 },
+  };
+
+  // ─── ダッシュボード ───
+  function Dashboard() {
+    const best  = [...metrics].sort((a,b) => b.pnlPct - a.pnlPct)[0];
+    const worst = [...metrics].sort((a,b) => a.pnlPct - b.pnlPct)[0];
+
+    return (
+      <>
+        {/* サマリー */}
+        <div style={S.sumGrid}>
+          <div style={S.sumCard(GOLD)}>
+            <div style={S.sumLabel}>現在の評価額</div>
+            <div style={S.sumValue(GOLD)}>{fmtJPY(totalCurrentJPY)}</div>
+            <div style={S.sumSub('#8b949e')}>元本: {fmtJPY(config.investmentJPY)}</div>
+          </div>
+          <div style={S.sumCard(pnlColor)}>
+            <div style={S.sumLabel}>含み損益（合計）</div>
+            <div style={S.sumValue(pnlColor)}>{fmtSign(totalPnl)}</div>
+            <div style={S.sumSub(pnlColor)}>{fmtPct(totalPnlPct)}</div>
+          </div>
+          <div style={S.sumCard(dailyColor)}>
+            <div style={S.sumLabel}>本日の損益</div>
+            <div style={S.sumValue(dailyColor)}>{fmtSign(totalDailyPnlJPY)}</div>
+            <div style={S.sumSub(dailyColor)}>{fmtPct(dailyPct)}</div>
+          </div>
+          <div style={S.sumCard(G)}>
+            <div style={S.sumLabel}>最も上がった銘柄</div>
+            <div style={{...S.sumValue(G), fontSize: 18, marginTop: 4}}>{best.flag} {best.name}</div>
+            <div style={S.sumSub(G)}>{fmtPct(best.pnlPct)}</div>
+          </div>
+        </div>
+
+        {/* 配分バー */}
+        <div style={S.card}>
+          <div style={S.cardTitle}>📊 ポートフォリオ配分と損益</div>
+          {metrics.map(m => (
+            <div key={m.symbol} style={S.allocRow}>
+              <div style={S.allocHd}>
+                <span style={{fontWeight: 500}}>{m.flag} {m.name} <span style={{color:'#8b949e',fontSize:11}}>({m.symbol})</span></span>
+                <div style={{display:'flex',gap:16,alignItems:'center'}}>
+                  <span style={{color:m.pnl>=0?G:R,fontWeight:700,fontSize:13}}>{fmtPct(m.pnlPct)}</span>
+                  <span style={{color:'#8b949e',fontSize:12}}>{m.allocation}%</span>
+                </div>
+              </div>
+              <div style={S.allocBar}>
+                <div style={S.allocFill(m.allocation * 2.4, m.pnl >= 0 ? G : R)} />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* パフォーマンス一覧表 */}
+        <div style={S.card}>
+          <div style={S.cardTitle}>📋 銘柄別パフォーマンス一覧</div>
+          <div style={{overflowX: 'auto'}}>
+            <table style={S.tbl}>
+              <thead>
+                <tr>
+                  <th style={S.th}>銘柄</th>
+                  <th style={{...S.th,...S.thR}}>現在値</th>
+                  <th style={{...S.th,...S.thR}}>前日比</th>
+                  <th style={{...S.th,...S.thR}}>評価額</th>
+                  <th style={{...S.th,...S.thR}}>含み損益</th>
+                  <th style={{...S.th,...S.thR}}>損益率</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...metrics].sort((a,b) => b.pnlPct - a.pnlPct).map((m,i) => (
+                  <tr key={m.symbol} style={i%2===0?{background:'#0d1117'}:{}}>
+                    <td style={S.td}>
+                      <div style={{fontWeight:700}}>{m.icon} {m.name}</div>
+                      <div style={{color:'#8b949e',fontSize:11,marginTop:2}}>{m.symbol} · {m.sector}</div>
+                    </td>
+                    <td style={{...S.td,...S.tdR,fontWeight:700}}>
+                      {m.currency==='USD' ? `$${m.currentRaw.toFixed(2)}` : `¥${Math.round(m.currentRaw).toLocaleString('ja-JP')}`}
+                    </td>
+                    <td style={{...S.td,...S.tdR,color:m.dailyChangePct>=0?G:R,fontWeight:600}}>
+                      {m.dailyChangePct>=0?'▲':'▼'}{Math.abs(m.dailyChangePct).toFixed(2)}%
+                    </td>
+                    <td style={{...S.td,...S.tdR}}>{fmtJPY(m.currentValue)}</td>
+                    <td style={{...S.td,...S.tdR,color:m.pnl>=0?G:R,fontWeight:700}}>{fmtSign(m.pnl)}</td>
+                    <td style={{...S.td,...S.tdR,color:m.pnlPct>=0?G:R,fontWeight:800}}>{fmtPct(m.pnlPct)}</td>
+                  </tr>
+                ))}
+                <tr style={{background:'#21262d'}}>
+                  <td style={{...S.td,fontWeight:800,color:GOLD}} colSpan={3}>合計</td>
+                  <td style={{...S.td,...S.tdR,fontWeight:800,color:GOLD}}>{fmtJPY(totalCurrentJPY)}</td>
+                  <td style={{...S.td,...S.tdR,fontWeight:800,color:pnlColor}}>{fmtSign(totalPnl)}</td>
+                  <td style={{...S.td,...S.tdR,fontWeight:800,color:pnlColor}}>{fmtPct(totalPnlPct)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // ─── 銘柄カード一覧 ───
+  function StockCards() {
+    return (
+      <div style={S.sGrid}>
+        {metrics.map(m => (
+          <div key={m.symbol} style={S.sCard(m.pnl)}>
+            <div style={S.sHead}>
+              <div>
+                <div style={S.sName}>{m.icon} {m.name}</div>
+                <div style={S.sSym}>{m.flag} {m.symbol} · {m.sector}</div>
+              </div>
+              <span style={S.risk(m.riskColor)}>リスク{m.risk}</span>
+            </div>
+
+            <div style={S.sPrice}>
+              {m.currency === 'USD'
+                ? `$${m.currentRaw.toFixed(2)}`
+                : `¥${Math.round(m.currentRaw).toLocaleString('ja-JP')}`}
+            </div>
+
+            {m.currency === 'USD' && (
+              <div style={S.sSub}>≈ ¥{Math.round(m.currentRaw * USD_JPY).toLocaleString('ja-JP')}</div>
+            )}
+
+            <div style={{...S.badge(m.dailyChangePct>=0?G+'22':R+'22', m.dailyChangePct>=0?G:R), border:`1px solid ${m.dailyChangePct>=0?G:R}44`, marginBottom:12}}>
+              {m.dailyChangePct>=0?'▲':'▼'} 前日比 {Math.abs(m.dailyChangePct).toFixed(2)}%
+            </div>
+
+            <div style={S.sDivider}>
+              <div style={S.sRow}>
+                <span style={S.sLbl}>購入単価</span>
+                <span>{m.currency==='USD'?`$${m.purchasePrice.toFixed(2)}`:`¥${Math.round(m.purchasePrice).toLocaleString('ja-JP')}`}</span>
+              </div>
+              <div style={S.sRow}>
+                <span style={S.sLbl}>投資額</span>
+                <span>{fmtJPY(m.allocated)}</span>
+              </div>
+              <div style={S.sRow}>
+                <span style={S.sLbl}>評価額</span>
+                <span style={{color:'#e6edf3',fontWeight:600}}>{fmtJPY(m.currentValue)}</span>
+              </div>
+              <div style={{...S.sRow, marginTop: 4}}>
+                <span style={S.sLbl}>本日の損益</span>
+                <span style={{color:m.dailyChangePct>=0?G:R,fontWeight:600}}>{fmtSign(m.dailyPnl)}</span>
+              </div>
+              <div style={S.sPnlRow}>
+                <span>含み損益</span>
+                <span style={{color:m.pnl>=0?G:R}}>
+                  {fmtSign(m.pnl)} ({fmtPct(m.pnlPct)})
+                </span>
+              </div>
+            </div>
+
+            <div style={{marginTop:10,fontSize:11,color:'#8b949e'}}>
+              配分 {m.allocation}% · 保有株数 {m.shares.toFixed(m.currency==='USD'?4:1)}株
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // ─── AI の理由 ───
+  function AIReason() {
+    return (
+      <>
+        <div style={S.aiCard}>
+          <span style={{fontSize:36,flexShrink:0}}>🤖</span>
+          <div>
+            <div style={S.aiTitle}>AIがすべて管理 — あなたは見るだけでOK</div>
+            <div style={S.aiDesc}>
+              このポートフォリオは AI が厳選した 8 銘柄で構成されています。
+              AI・テクノロジーセクターを中心に、日本株と米国株をバランスよく組み合わせることで
+              成長性とリスク分散を両立しています。価格は30秒ごとに自動更新されます。<br/>
+              <strong style={{color:GOLD}}>あなたがすることは、このページを開いて確認するだけです。</strong>
+            </div>
+          </div>
+        </div>
+
+        {metrics.map(m => (
+          <div key={m.symbol} style={S.card}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:12,flexWrap:'wrap',gap:8}}>
+              <div style={{display:'flex',gap:10,alignItems:'center'}}>
+                <span style={{fontSize:28}}>{m.icon}</span>
+                <div>
+                  <div style={{fontWeight:800,fontSize:15}}>{m.flag} {m.name}</div>
+                  <div style={{color:'#8b949e',fontSize:12,marginTop:2}}>{m.symbol} · {m.sector}</div>
+                </div>
+              </div>
+              <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+                <span style={S.risk(m.riskColor)}>リスク{m.risk}</span>
+                <span style={{...S.badge(GOLD+'22', GOLD),border:`1px solid ${GOLD}44`}}>配分 {m.allocation}%</span>
+                <span style={{...S.badge(m.pnl>=0?G+'22':R+'22', m.pnl>=0?G:R),border:`1px solid ${m.pnl>=0?G:R}44`}}>
+                  {fmtPct(m.pnlPct)}
+                </span>
+              </div>
+            </div>
+
+            {/* AI スコア */}
+            <div style={S.scoreWrap}>
+              <span style={{fontSize:11,color:'#8b949e',flexShrink:0}}>AI スコア</span>
+              <div style={S.scoreBar}>
+                <div style={S.scoreFill(m.aiScore)} />
+              </div>
+              <span style={{fontWeight:800,fontSize:14,color:m.aiScore>=88?G:m.aiScore>=75?GOLD:R,flexShrink:0}}>{m.aiScore}/100</span>
+            </div>
+
+            {/* 理由（クリックで展開） */}
+            <div
+              style={{cursor:'pointer',color:GOLD,fontSize:13,fontWeight:600,display:'flex',alignItems:'center',gap:6}}
+              onClick={() => setExpandedAI(expandedAI===m.symbol ? null : m.symbol)}
+            >
+              💡 AIが選んだ理由 {expandedAI===m.symbol ? '▲' : '▼'}
+            </div>
+            {expandedAI === m.symbol && (
+              <div style={S.reasonBox}>{m.reason}</div>
+            )}
+          </div>
+        ))}
+      </>
+    );
+  }
+
+  // ─── メインレンダー ───
+  return (
+    <div style={S.root}>
+
+      {/* ヘッダー */}
+      <header style={S.header}>
+        <div style={S.hInner}>
+          <div style={S.logo}>
+            <span style={{fontSize:26}}>📈</span>
+            <div>
+              <div style={S.logoT}>AI 株式ポートフォリオ</div>
+              <div style={S.logoS}>AI STOCK PORTFOLIO MANAGER</div>
+            </div>
+          </div>
+          <nav style={S.nav}>
+            {[['dashboard','📊 ダッシュボード'],['stocks','💼 銘柄一覧'],['ai','🤖 AIの理由']].map(([k,v]) => (
+              <button key={k} style={{...S.navBtn,...(tab===k?S.navAct:{})}} onClick={()=>setTab(k)}>{v}</button>
+            ))}
+          </nav>
+        </div>
+      </header>
+
+      {/* ティッカーバー */}
+      <div style={S.ticker}>
+        {metrics.map(m => (
+          <span key={m.symbol} style={{whiteSpace:'nowrap'}}>
+            {m.flag} {m.symbol} &nbsp;
+            <span style={{fontWeight:700,color:m.dailyChangePct>=0?G:R}}>
+              {m.currency==='USD'?`$${m.currentRaw.toFixed(2)}`:`¥${Math.round(m.currentRaw).toLocaleString()}`}
+              {' '}({m.dailyChangePct>=0?'+':''}{m.dailyChangePct.toFixed(2)}%)
+            </span>
+          </span>
+        ))}
+        <span style={{color:'#30363d'}}>|</span>
+        <span>🕒 {lastUpdate.toLocaleTimeString('ja-JP')}</span>
+        <span>💱 1USD = ¥{USD_JPY.toFixed(0)}</span>
+        <span
+          style={{color:GOLD,cursor:'pointer',fontWeight:700}}
+          onClick={() => setShowModal(true)}
+        >
+          ⚙ 投資額設定
+        </span>
+      </div>
+
+      {/* コンテンツ */}
+      <main style={S.main}>
+        {tab === 'dashboard' && <Dashboard />}
+        {tab === 'stocks'    && <StockCards />}
+        {tab === 'ai'        && <AIReason />}
+      </main>
+
+      {/* 投資額設定モーダル */}
+      {showModal && (
+        <div style={S.overlay} onClick={()=>setShowModal(false)}>
+          <div style={S.modal} onClick={e=>e.stopPropagation()}>
+            <div style={S.mTitle}>⚙ 投資額の設定</div>
+            <div style={S.mDesc}>
+              投資するお金の合計額（円）を入力してください。<br/>
+              AI が 8 銘柄に自動で配分します。<br/>
+              <strong style={{color:GOLD}}>現在: {fmtJPY(config.investmentJPY)}</strong>
+            </div>
+            <div style={{marginBottom:6,fontSize:12,color:'#8b949e'}}>投資総額（円）</div>
+            <input
+              style={S.mInput}
+              type="number"
+              placeholder="例: 1000000（100万円）"
+              value={investInput}
+              onChange={e=>setInvestInput(e.target.value)}
+            />
+            <div style={{fontSize:11,color:'#8b949e',marginTop:8}}>
+              ※ 実際に株を購入するわけではありません。シミュレーションです。
+            </div>
+            <div style={S.mBtns}>
+              <button style={S.mCancel} onClick={()=>{setShowModal(false);setInvestInput('');}}>キャンセル</button>
+              <button style={S.mSave} onClick={()=>{
+                const v = parseInt(investInput);
+                if(v > 0) { const nc={...config,investmentJPY:v}; setConfig(nc); saveConfig(nc); }
+                setShowModal(false); setInvestInput('');
+              }}>設定する</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* フッター */}
+      <footer style={S.footer}>
+        ⚠ 本アプリの価格はデモ用シミュレーションです（実際の市場価格ではありません）。<br/>
+        投資にはリスクが伴います。実際に株を購入する際は証券会社・ファイナンシャルアドバイザーにご相談ください。<br/>
+        AI の推奨はあくまで参考情報です。投資は自己責任でお願いします。
+      </footer>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
